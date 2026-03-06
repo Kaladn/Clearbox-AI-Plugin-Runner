@@ -13,6 +13,7 @@ import threading
 import time
 import uuid
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from wolf_engine.archon.orchestrator import Orchestrator
@@ -47,8 +48,14 @@ class WolfEngine:
 
     def __init__(self, db_dir: str | None = None):
         if db_dir is None:
-            from security.data_paths import WOLF_ENGINE_DIR
-            db_dir = str(WOLF_ENGINE_DIR)
+            try:
+                from security.data_paths import WOLF_ENGINE_DIR
+                db_dir = str(WOLF_ENGINE_DIR)
+            except Exception:
+                configured_parent = Path(DB_PATH).expanduser().resolve().parent
+                db_dir = str(configured_parent) if str(configured_parent) else os.path.join(
+                    tempfile.gettempdir(), "wolf_engine"
+                )
         self._db_dir = db_dir
         os.makedirs(self._db_dir, exist_ok=True)
 

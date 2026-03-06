@@ -11,6 +11,7 @@ Usage:
 Opens:  http://localhost:9090       (UI)
         http://localhost:9090/docs  (Swagger — all mounted routes)
 """
+# pyright: reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false, reportMissingTypeArgument=false, reportUnknownLambdaType=false, reportUnknownReturnType=false
 
 from __future__ import annotations
 

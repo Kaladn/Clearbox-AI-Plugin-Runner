@@ -102,6 +102,17 @@ async def network_health() -> dict[str, Any]:
     }
 
 
+@router.get("/status")
+async def network_status() -> dict[str, Any]:
+    """Status alias used by plugin runner health polling."""
+    health = await network_health()
+    return {
+        **health,
+        "enabled": True,
+        "mount": "/api/network",
+    }
+
+
 # ── Roots ──────────────────────────────────────────────────────────────────────
 
 @router.get("/roots/{node_id}")
