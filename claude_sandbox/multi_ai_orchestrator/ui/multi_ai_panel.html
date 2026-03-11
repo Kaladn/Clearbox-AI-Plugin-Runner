@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="plugin" content="clearbox-multi-ai">
+<meta name="version" content="1.0.0">
+<meta name="api-help" content="/api/multi_ai/help">
+<meta name="api-config" content="/api/multi_ai/config">
+<title>Multi-AI Orchestrator</title>
+<style>
+  :root {
+    --bg:        var(--vscode-editor-background, #1e1e1e);
+    --bg2:       var(--vscode-sideBar-background, #252526);
+    --bg3:       var(--vscode-input-background, #3c3c3c);
+    --border:    var(--vscode-panel-border, #444);
+    --fg:        var(--vscode-editor-foreground, #d4d4d4);
+    --fg2:       var(--vscode-descriptionForeground, #999);
+    --accent:    var(--vscode-focusBorder, #007acc);
+    --green:     #4ec9b0;
+    --amber:     #ddb96a;
+    --red:       #f44747;
+    --blue:      #569cd6;
+    --human-bg:  #2a2010;
+    --human-border: #ddb96a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+    font-size: 13px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Orchestrator Bar ── */
+  #orch-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  #orch-bar label { color: var(--fg2); font-size: 11px; }
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    background: var(--bg3);
+    border: none;
+    color: var(--fg2);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .mode-btn.active { background: var(--accent); color: #fff; }
+  #dispatch-input {
+    flex: 1;
+    min-width: 180px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  #dispatch-input:focus { outline: 1px solid var(--accent); }
+  .orch-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .orch-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .orch-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .orch-btn.primary:hover { opacity: 0.85; }
+
+  /* ── Node target selector in orch bar ── */
+  #dispatch-target {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  /* ── Node Canvas ── */
+  #node-canvas {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    align-items: stretch;
+  }
+
+  /* ── Node Card ── */
+  .node-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    min-width: 280px;
+    max-width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .node-card.status-thinking  { border-color: var(--blue); }
+  .node-card.status-awaiting  { border-color: var(--amber); }
+  .node-card.status-done      { border-color: var(--green); }
+  .node-card.status-error     { border-color: var(--red); }
+  .node-card.human-slot       { background: var(--human-bg); border-color: var(--human-border); }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--border);
+  }
+  .node-id-badge {
+    background: var(--bg3);
+    color: var(--fg2);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+  .node-label-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 0;
+  }
+  .node-label-input:focus { outline: 1px solid var(--accent); border-radius: 2px; }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--fg2);
+    flex-shrink: 0;
+  }
+  .status-dot.idle      { background: var(--fg2); }
+  .status-dot.thinking  { background: var(--blue); animation: pulse 1s infinite; }
+  .status-dot.awaiting  { background: var(--amber); }
+  .status-dot.done      { background: var(--green); }
+  .status-dot.error     { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .remove-btn {
+    background: none; border: none; color: var(--fg2);
+    cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1;
+  }
+  .remove-btn:hover { color: var(--red); }
+
+  /* ── Node Config Row ── */
+  .node-config {
+    display: flex;
+    gap: 4px;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .node-config select, .node-config input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 3px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+  .node-config select:focus, .node-config input:focus { outline: 1px solid var(--accent); }
+  .slot-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+  }
+  .slot-badge.human { background: var(--amber); color: #000; }
+  .slot-badge.llm   { background: var(--blue);  color: #fff; }
+  .cfg-label { font-size: 10px; color: var(--fg2); }
+
+  /* ── Chain row ── */
+  .chain-row {
+    display: flex;
+    gap: 4px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    font-size: 11px;
+    color: var(--fg2);
+  }
+  .chain-row select { font-size: 11px; padding: 2px 4px; background: var(--bg3); border: 1px solid var(--border); color: var(--fg); border-radius: 3px; }
+
+  /* ── Conversation ── */
+  .node-convo {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 120px;
+    max-height: 320px;
+  }
+  .turn {
+    padding: 6px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .turn.user {
+    background: rgba(86,156,214,0.1);
+    border-left: 2px solid var(--blue);
+  }
+  .turn.user::before { content: 'USER'; font-size: 9px; color: var(--blue); display: block; margin-bottom: 3px; font-weight: bold; letter-spacing: 0.05em; }
+  .turn.assistant {
+    background: rgba(78,201,176,0.08);
+    border-left: 2px solid var(--green);
+  }
+  .turn.assistant::before { content: 'ASSISTANT'; font-size: 9px; color: var(--green); display: block; margin-bottom: 3px; font-weight: bold; letter-spacing: 0.05em; }
+  .turn.assistant.human-authored { border-left-color: var(--amber); }
+  .turn.assistant.human-authored::before { content: '✎ LEE'; color: var(--amber); }
+  .turn.streaming::after { content: '▌'; animation: blink 0.7s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .chain-inject-banner {
+    font-size: 10px;
+    color: var(--amber);
+    padding: 3px 6px;
+    background: rgba(221,185,106,0.08);
+    border: 1px dashed var(--amber);
+    border-radius: 3px;
+  }
+
+  /* ── Node Input Area ── */
+  .node-input-area {
+    padding: 6px 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .node-textarea {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    resize: vertical;
+    min-height: 52px;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  .node-textarea:focus { outline: 1px solid var(--accent); }
+  .node-textarea.human-response {
+    border-color: var(--amber);
+    background: rgba(221,185,106,0.06);
+  }
+  .node-textarea.locked { opacity: 0.7; }
+
+  /* Response textarea label */
+  .response-label {
+    font-size: 10px;
+    color: var(--amber);
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+
+  .input-btns { display: flex; gap: 5px; align-items: center; }
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .send-btn:hover  { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: default; }
+  .send-btn.human  { background: var(--amber); color: #000; }
+  .cancel-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--fg2);
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .cancel-btn:hover { border-color: var(--red); color: var(--red); }
+  .chain-badge {
+    font-size: 10px;
+    color: var(--amber);
+    margin-left: auto;
+  }
+
+  /* ── Add Node Button ── */
+  #add-node-card {
+    min-width: 80px;
+    max-width: 80px;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--fg2);
+    font-size: 28px;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #add-node-card:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Status Bar ── */
+  #status-bar {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  #status-bar a { color: #fff; opacity: 0.75; text-decoration: none; }
+  #status-bar a:hover { opacity: 1; text-decoration: underline; }
+
+  /* ── Sessions Drawer ── */
+  #sessions-drawer {
+    position: fixed; right: 0; top: 0; bottom: 0;
+    width: 320px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.2s;
+  }
+  #sessions-drawer.open { transform: translateX(0); }
+  #sessions-drawer h3 {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #sessions-drawer h3 button {
+    background: none; border: none; color: var(--fg2); cursor: pointer; font-size: 16px;
+  }
+  #sessions-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .session-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 7px 9px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .session-item:hover { border-color: var(--accent); }
+  .session-item .s-id   { color: var(--fg2); font-size: 10px; margin-bottom: 2px; }
+  .session-item .s-meta { color: var(--fg2); font-size: 10px; margin-top: 3px; }
+  .session-item .s-label{ font-weight: 600; font-size: 12px; }
+  .drawer-btns {
+    padding: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+  }
+
+  /* ── Help Drawer ── */
+  #help-drawer {
+    position: fixed; right: 0; top: 0; bottom: 0;
+    width: 360px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 101;
+    transform: translateX(100%);
+    transition: transform 0.2s;
+    overflow-y: auto;
+    padding: 14px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  #help-drawer.open { transform: translateX(0); }
+  #help-drawer h2 { font-size: 14px; margin-bottom: 10px; }
+  #help-drawer h3 { font-size: 12px; color: var(--accent); margin: 12px 0 5px; }
+  #help-drawer p  { color: var(--fg2); margin-bottom: 6px; }
+  #help-drawer code { background: var(--bg3); padding: 1px 4px; border-radius: 2px; font-size: 11px; }
+  #help-drawer table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 11px; }
+  #help-drawer td, #help-drawer th { border: 1px solid var(--border); padding: 4px 7px; }
+  #help-drawer th { background: var(--bg3); color: var(--fg2); font-weight: 600; }
+  .help-close {
+    position: sticky; top: 0;
+    background: none; border: none; color: var(--fg2);
+    cursor: pointer; font-size: 18px; float: right; margin-bottom: 6px;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 7px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 200;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ── Orchestrator Bar ──────────────────────────────────────────────────── -->
+<div id="orch-bar" role="toolbar" aria-label="Orchestrator controls">
+  <span style="font-weight:700;font-size:12px;color:var(--accent)">⬡ Multi-AI</span>
+
+  <div class="mode-toggle" title="HUB: Lee dispatches manually. CHAIN: nodes auto-wire outputs.">
+    <button class="mode-btn active" id="btn-hub"   onclick="setMode('hub')"   aria-label="Hub mode">HUB</button>
+    <button class="mode-btn"        id="btn-chain" onclick="setMode('chain')" aria-label="Chain mode">CHAIN</button>
+  </div>
+
+  <input id="dispatch-input" type="text"
+    placeholder="Dispatch message to nodes…"
+    aria-label="Hub dispatch message"
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();hubDispatch();}"
+  />
+
+  <select id="dispatch-target" aria-label="Dispatch target node">
+    <option value="all">→ All nodes</option>
+  </select>
+
+  <button class="orch-btn primary" onclick="hubDispatch()" aria-label="Send dispatch">Send</button>
+  <button class="orch-btn" onclick="addNodePrompt()" title="Add node (max 10)" aria-label="Add node">+ Node</button>
+  <button class="orch-btn" onclick="toggleSessions()" aria-label="Open sessions drawer">Sessions</button>
+  <button class="orch-btn" onclick="newSession()" aria-label="Start new session" title="Clears chat history and starts a new session file">New Session</button>
+  <button class="orch-btn" onclick="exportSession()" aria-label="Export current session">Export</button>
+  <button class="orch-btn" onclick="openNotes()" aria-label="Open session notes" title="Opens session_notes.md beside this panel — your notes only, never auto-written">Notes</button>
+  <button class="orch-btn" onclick="toggleHelp()" aria-label="Open help">?</button>
+</div>
+
+<!-- ── Node Canvas ──────────────────────────────────────────────────────── -->
+<div id="node-canvas" role="main" aria-label="Node conversation panels">
+  <!-- nodes rendered here by JS -->
+  <div id="add-node-card" onclick="addNodePrompt()" role="button" tabindex="0"
+       aria-label="Add new node" title="Add node">＋</div>
+</div>
+
+<!-- ── Status Bar ───────────────────────────────────────────────────────── -->
+<div id="status-bar" role="status" aria-live="polite">
+  <span id="sb-session">No session</span>
+  <span id="sb-nodes">0 nodes</span>
+  <span id="sb-mode">HUB</span>
+  <span id="sb-providers">Discovering…</span>
+  <a href="#" onclick="fetchHelp();return false;" aria-label="Fetch help schema">API Help</a>
+</div>
+
+<!-- ── Sessions Drawer ──────────────────────────────────────────────────── -->
+<div id="sessions-drawer" role="complementary" aria-label="Saved sessions">
+  <h3>Saved Sessions
+    <button onclick="toggleSessions()" aria-label="Close sessions drawer">✕</button>
+  </h3>
+  <div id="sessions-list" aria-label="Session list">
+    <span style="color:var(--fg2);font-size:11px;padding:6px">Loading…</span>
+  </div>
+  <div class="drawer-btns">
+    <button class="orch-btn primary" onclick="newSession();toggleSessions()">New Session</button>
+    <button class="orch-btn" onclick="exportSession()">Export Current</button>
+  </div>
+</div>
+
+<!-- ── Help Drawer ──────────────────────────────────────────────────────── -->
+<div id="help-drawer" role="complementary" aria-label="Help reference">
+  <button class="help-close" onclick="toggleHelp()" aria-label="Close help">✕</button>
+  <h2>⬡ Multi-AI Orchestrator — Help</h2>
+
+  <h3>Modes</h3>
+  <table>
+    <tr><th>Mode</th><th>Behavior</th></tr>
+    <tr><td><code>HUB</code></td><td>You dispatch. No auto-wiring between nodes.</td></tr>
+    <tr><td><code>CHAIN</code></td><td>Each node can wire its output to the next node's input.</td></tr>
+  </table>
+
+  <h3>Slot Types</h3>
+  <table>
+    <tr><th>Slot</th><th>Behavior</th></tr>
+    <tr><td><code>LLM</code></td><td>Calls the selected AI provider. Uses vscode.lm, extension export, or local HTTP.</td></tr>
+    <tr><td><code>HUMAN ✎</code></td><td>You type the assistant response. Chain always pauses here. Never auto-fires.</td></tr>
+  </table>
+
+  <h3>Provider Tiers</h3>
+  <table>
+    <tr><th>Tier</th><th>Source</th></tr>
+    <tr><td>vscode.lm</td><td>Any VSCode AI extension that registers via vscode.lm API (Copilot, etc.)</td></tr>
+    <tr><td>Extension export</td><td>Configure in settings: <code>clearboxMultiAi.knownExtensions</code></td></tr>
+    <tr><td>Local HTTP</td><td>Configure in settings: <code>clearboxMultiAi.localEndpoints</code> — localhost/LAN only</td></tr>
+  </table>
+
+  <h3>Chain Fire Modes</h3>
+  <p><code>PREVIEW_FIRST</code> (default) — injects text into next node's input, waits for you to confirm before firing.</p>
+  <p><code>AUTO</code> — fires next node immediately on completion. HUMAN nodes always override to PREVIEW_FIRST.</p>
+
+  <h3>Session Storage</h3>
+  <p>Every turn written to disk immediately on completion.<br>
+  Location: <code>~/.clearbox/multi_ai/sessions/{session_id}/turns.jsonl</code><br>
+  Append-only. Never rewritten. Never summarized. Full content always.</p>
+  <p><strong>session_notes.md</strong> — never auto-written. Yours only. Opens in a panel beside this one.</p>
+
+  <h3>Export Formats</h3>
+  <p><code>JSONL</code> — raw turns file. One JSON record per line. wolf_engine compatible.</p>
+  <p><code>Markdown</code> — handoff log with node labels, sources, and timestamps. Human readable.</p>
+
+  <h3>Settings Reference</h3>
+  <table>
+    <tr><th>Key</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>clearboxMultiAi.knownExtensions</code></td><td>[]</td><td>Extension exports to probe</td></tr>
+    <tr><td><code>clearboxMultiAi.localEndpoints</code></td><td>[]</td><td>Local HTTP endpoints</td></tr>
+    <tr><td><code>clearboxMultiAi.defaultChainMode</code></td><td>PREVIEW_FIRST</td><td>Chain fire behavior</td></tr>
+    <tr><td><code>clearboxMultiAi.sessionStoragePath</code></td><td>""</td><td>Override storage path</td></tr>
+    <tr><td><code>clearboxMultiAi.defaultNodes</code></td><td>4 roles</td><td>Nodes on panel open</td></tr>
+  </table>
+
+  <h3>Source Tags (on every turn)</h3>
+  <table>
+    <tr><th>Source</th><th>Meaning</th></tr>
+    <tr><td><code>manual</code></td><td>You typed it directly</td></tr>
+    <tr><td><code>hub_dispatch</code></td><td>Came from the orchestrator bar</td></tr>
+    <tr><td><code>chain_from_{id}</code></td><td>Auto-injected by node {id} chain target</td></tr>
+    <tr><td><code>human</code></td><td>HUMAN slot — you wrote the assistant response</td></tr>
+  </table>
+
+  <h3>API Endpoints (when mounted in Clearbox)</h3>
+  <table>
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td><code>POST /api/multi_ai/chat</code></td><td>Proxy turn to local endpoint</td></tr>
+    <tr><td><code>GET  /api/multi_ai/sessions</code></td><td>List saved sessions</td></tr>
+    <tr><td><code>GET  /api/multi_ai/session</code></td><td>Full session data</td></tr>
+    <tr><td><code>GET  /api/multi_ai/config</code></td><td>Storage config</td></tr>
+    <tr><td><code>GET  /api/multi_ai/help</code></td><td>Machine-readable schema</td></tr>
+  </table>
+  <div id="help-api-result" style="margin-top:10px;display:none">
+    <h3>Live /api/multi_ai/help</h3>
+    <pre id="help-api-pre" style="background:var(--bg3);padding:8px;border-radius:3px;font-size:10px;overflow:auto;max-height:200px;white-space:pre-wrap"></pre>
+  </div>
+  <button class="orch-btn" style="margin-top:10px" onclick="fetchHelp()" aria-label="Fetch live help schema">Fetch /api/multi_ai/help</button>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+<div id="toast" role="status" aria-live="assertive"></div>
+
+<script>
+'use strict';
+
+// ── VS Code API bridge ───────────────────────────────────────────────────────
+const vsc = (typeof acquireVsCodeApi === 'function') ? acquireVsCodeApi() : null;
+function post(msg) { if (vsc) vsc.postMessage(msg); }
+
+// ── State ────────────────────────────────────────────────────────────────────
+let nodes         = [];          // AINode[] (serialized from extension)
+let providers     = [];          // provider list from discoverProviders()
+let mode          = 'hub';
+let sessionId     = null;
+let sessions      = [];
+let streamBuffers = {};          // nodeId → partial response string
+
+// ── Message handler from extension ──────────────────────────────────────────
+window.addEventListener('message', e => {
+  const msg = e.data;
+  switch (msg.type) {
+
+    case 'providers_ready':
+      providers = msg.providers || [];
+      rebuildAllProviderSelects();
+      updateStatusBar();
+      break;
+
+    case 'node_added':
+      nodes.push(msg.node);
+      renderNode(msg.node);
+      rebuildDispatchTargets();
+      updateStatusBar();
+      break;
+
+    case 'node_removed':
+      nodes = nodes.filter(n => n.id !== msg.node_id);
+      document.getElementById(`node-${msg.node_id}`)?.remove();
+      rebuildDispatchTargets();
+      updateStatusBar();
+      break;
+
+    case 'node_updated':
+      updateNodeInArray(msg.node_id, msg.updates);
+      refreshNodeCard(msg.node_id);
+      break;
+
+    case 'mode_changed':
+      mode = msg.mode;
+      document.getElementById('btn-hub').classList.toggle('active',   mode === 'hub');
+      document.getElementById('btn-chain').classList.toggle('active', mode === 'chain');
+      document.getElementById('sb-mode').textContent = mode.toUpperCase();
+      break;
+
+    case 'stream_chunk': {
+      const nodeId = msg.node_id;
+      if (!streamBuffers[nodeId]) streamBuffers[nodeId] = '';
+      streamBuffers[nodeId] += msg.chunk;
+      const el = document.querySelector(`#node-${nodeId} .streaming-turn`);
+      if (el) el.textContent = streamBuffers[nodeId];
+      break;
+    }
+
+    case 'turn_complete': {
+      const n = updateNodeInArray(msg.node_id, msg.node_state);
+      streamBuffers[msg.node_id] = '';
+      refreshNodeCard(msg.node_id);
+      appendTurnToCard(msg.node_id, 'assistant', msg.response,
+        msg.source === 'human' ? 'human' : msg.source);
+      scrollConvo(msg.node_id);
+      break;
+    }
+
+    case 'awaiting_human':
+      setNodeStatus(msg.node_id, 'awaiting');
+      showHumanResponseArea(msg.node_id, msg.user_message);
+      break;
+
+    case 'chain_preview': {
+      const node = updateNodeInArray(msg.to_node_id, msg.node_state);
+      refreshNodeCard(msg.to_node_id);
+      showChainInjectBanner(msg.to_node_id, msg.from_node_id, msg.injected_text);
+      toast(`⛓ Chain: Node ${msg.from_node_id} → Node ${msg.to_node_id} (preview)`);
+      break;
+    }
+
+    case 'chain_fired':
+      toast(`⛓ Chain firing: Node ${msg.from_node_id} → Node ${msg.to_node_id}`);
+      break;
+
+    case 'session_started':
+      sessionId = msg.session_id;
+      document.getElementById('sb-session').textContent = `Session: ${msg.session_id.substring(0, 20)}…`;
+      toast('New session started');
+      break;
+
+    case 'sessions_list':
+      sessions = msg.sessions || [];
+      renderSessionsList();
+      break;
+
+    case 'export_ready':
+      downloadFile(msg.filename, msg.content);
+      toast(`Exported: ${msg.filename}`);
+      break;
+
+    case 'error':
+      toast(`Error${msg.node_id ? ` (Node ${msg.node_id})` : ''}: ${msg.message}`, true);
+      if (msg.node_id) setNodeStatus(msg.node_id, 'error');
+      break;
+  }
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  post({ type: 'ready' });
+});
+
+// ── Node rendering ───────────────────────────────────────────────────────────
+function renderNode(node) {
+  const canvas   = document.getElementById('node-canvas');
+  const addBtn   = document.getElementById('add-node-card');
+  const card     = buildNodeCard(node);
+  canvas.insertBefore(card, addBtn);
+  rebuildChainSelects();
+}
+
+function buildNodeCard(node) {
+  const card = document.createElement('div');
+  card.className = `node-card status-${node.status.toLowerCase()}${node.slot_type === 'HUMAN' ? ' human-slot' : ''}`;
+  card.id        = `node-${node.id}`;
+  card.setAttribute('role', 'region');
+  card.setAttribute('aria-label', `Node ${node.id}: ${node.label}`);
+  card.innerHTML = nodeCardHtml(node);
+  return card;
+}
+
+function nodeCardHtml(node) {
+  const provOpts = providers.map(p =>
+    `<option value="${escAttr(JSON.stringify(p))}"${node.provider && node.provider.display === p.display ? ' selected' : ''}>${escHtml(p.display)}</option>`
+  ).join('');
+
+  const chainOpts = ['<option value="">No chain</option>']
+    .concat(nodes.filter(n => n.id !== node.id).map(n =>
+      `<option value="${n.id}"${node.chain_target === n.id ? ' selected' : ''}>→ Node ${n.id} (${escHtml(n.label)})</option>`
+    )).join('');
+
+  const isHuman = node.slot_type === 'HUMAN';
+  const statusClass = { IDLE: 'idle', THINKING: 'thinking', AWAITING_HUMAN: 'awaiting', DONE: 'done', ERROR: 'error' }[node.status] || 'idle';
+  const statusLabel = { IDLE: '○ IDLE', THINKING: '◉ THINKING', AWAITING_HUMAN: '✎ AWAITING', DONE: '● DONE', ERROR: '✕ ERROR' }[node.status] || '';
+
+  return `
+  <div class="node-header">
+    <span class="node-id-badge" aria-label="Node ${node.id}">${node.id}</span>
+    <input class="node-label-input" type="text" value="${escAttr(node.label)}"
+      aria-label="Node label"
+      onchange="updateNode(${node.id}, {label: this.value})"
+    />
+    <span class="status-dot ${statusClass}" title="${statusLabel}" aria-label="Status: ${statusLabel}"></span>
+    <button class="remove-btn" onclick="removeNode(${node.id})" title="Remove node" aria-label="Remove node ${node.id}">×</button>
+  </div>
+
+  <div class="node-config">
+    <span class="cfg-label">Slot</span>
+    <select aria-label="Slot type"
+      onchange="updateNode(${node.id}, {slot_type: this.value}); refreshNodeCard(${node.id})">
+      <option value="LLM"   ${!isHuman ? 'selected' : ''}>LLM</option>
+      <option value="HUMAN" ${ isHuman ? 'selected' : ''}>HUMAN ✎</option>
+    </select>
+    ${!isHuman ? `
+    <span class="cfg-label">Provider</span>
+    <select aria-label="LLM provider"
+      onchange="updateNode(${node.id}, {provider: JSON.parse(this.value)})">
+      <option value="">— select —</option>
+      ${provOpts}
+    </select>
+    ` : `<span class="slot-badge human" aria-label="Human slot">✎ LEE</span>`}
+    <select aria-label="Node role"
+      onchange="updateNode(${node.id}, {role: this.value})">
+      ${['STRATEGIST','EXECUTOR','CODER','VALIDATOR','CUSTOM'].map(r =>
+        `<option value="${r}"${node.role === r ? ' selected' : ''}>${r}</option>`
+      ).join('')}
+    </select>
+  </div>
+
+  <div class="chain-row">
+    <span style="color:var(--fg2)">⛓ Chain→</span>
+    <select class="chain-sel" aria-label="Chain target node"
+      onchange="updateNode(${node.id}, {chain_target: this.value ? parseInt(this.value) : null})">
+      ${chainOpts}
+    </select>
+    <select aria-label="Chain fire mode"
+      onchange="updateNode(${node.id}, {chain_mode: this.value})">
+      <option value="PREVIEW_FIRST"${node.chain_mode === 'PREVIEW_FIRST' ? ' selected' : ''}>Preview first</option>
+      <option value="AUTO"${node.chain_mode === 'AUTO' ? ' selected' : ''}>Auto-fire</option>
+    </select>
+  </div>
+
+  <div class="node-convo" id="convo-${node.id}" aria-label="Conversation history for node ${node.id}">
+    <!-- turns rendered here -->
+  </div>
+
+  <div class="node-input-area" id="input-area-${node.id}">
+    ${isHuman ? humanInputHtml(node) : llmInputHtml(node)}
+  </div>`;
+}
+
+function llmInputHtml(node) {
+  return `
+  <textarea class="node-textarea${node.locked ? ' locked' : ''}" id="textarea-${node.id}"
+    placeholder="User message…" rows="3"
+    aria-label="User message for node ${node.id}"
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.ctrlKey){event.preventDefault();sendNode(${node.id});}"
+  >${escHtml(node.current_input || '')}</textarea>
+  <div class="input-btns">
+    <button class="send-btn" id="send-btn-${node.id}" onclick="sendNode(${node.id})"
+      aria-label="Send message to node ${node.id}">Send</button>
+    <button class="cancel-btn" onclick="cancelNode(${node.id})" aria-label="Cancel node ${node.id}">Stop</button>
+    ${node.chain_target ? `<span class="chain-badge">⛓→${node.chain_target}</span>` : ''}
+  </div>`;
+}
+
+function humanInputHtml(node) {
+  return `
+  <div class="response-label">✎ YOUR RESPONSE</div>
+  <textarea class="node-textarea human-response" id="human-response-${node.id}"
+    placeholder="Type your response here, then click Submit…" rows="3"
+    aria-label="Your response for HUMAN node ${node.id}"
+  ></textarea>
+  <div class="input-btns">
+    <button class="send-btn human" onclick="submitHuman(${node.id})"
+      aria-label="Submit human response for node ${node.id}">Submit Response</button>
+    ${node.chain_target ? `<span class="chain-badge">⛓→${node.chain_target}</span>` : ''}
+  </div>`;
+}
+
+// ── Node operations ───────────────────────────────────────────────────────────
+function addNodePrompt() {
+  if (nodes.length >= 10) { toast('Maximum 10 nodes reached', true); return; }
+  post({ type: 'add_node', label: `Node ${nodes.length + 1}`, role: 'CUSTOM', slot_type: 'LLM' });
+}
+
+function removeNode(nodeId) {
+  post({ type: 'remove_node', node_id: nodeId });
+}
+
+function updateNode(nodeId, updates) {
+  post({ type: 'update_node', node_id: nodeId, updates });
+  updateNodeInArray(nodeId, updates);
+}
+
+function sendNode(nodeId) {
+  const ta = document.getElementById(`textarea-${nodeId}`);
+  const msg = (ta?.value || '').trim();
+  if (!msg) return;
+  const node = getNode(nodeId);
+  if (!node) return;
+
+  // Show user turn immediately in the UI
+  appendTurnToCard(nodeId, 'user', msg, 'manual');
+  ta.value = '';
+  setNodeStatus(nodeId, 'thinking');
+  addStreamingPlaceholder(nodeId);
+
+  post({ type: 'send', node_id: nodeId, user_message: msg, source: 'manual' });
+}
+
+function submitHuman(nodeId) {
+  const ta = document.getElementById(`human-response-${nodeId}`);
+  const text = (ta?.value || '').trim();
+  if (!text) return;
+  appendTurnToCard(nodeId, 'assistant', text, 'human');
+  ta.value = '';
+  setNodeStatus(nodeId, 'done');
+  post({ type: 'submit_human', node_id: nodeId, response_text: text });
+}
+
+function cancelNode(nodeId) {
+  post({ type: 'cancel_node', node_id: nodeId });
+  setNodeStatus(nodeId, 'idle');
+  // Remove streaming placeholder
+  document.querySelector(`#node-${nodeId} .streaming-turn`)?.remove();
+}
+
+function hubDispatch() {
+  const msg    = document.getElementById('dispatch-input').value.trim();
+  const target = document.getElementById('dispatch-target').value;
+  if (!msg) return;
+
+  if (target === 'all') {
+    nodes.forEach(n => {
+      appendTurnToCard(n.id, 'user', msg, 'hub_dispatch');
+      setNodeStatus(n.id, 'thinking');
+      addStreamingPlaceholder(n.id);
+    });
+  } else {
+    const nid = parseInt(target);
+    appendTurnToCard(nid, 'user', msg, 'hub_dispatch');
+    setNodeStatus(nid, 'thinking');
+    addStreamingPlaceholder(nid);
+  }
+
+  document.getElementById('dispatch-input').value = '';
+  post({ type: 'hub_dispatch', message: msg, target });
+}
+
+function setMode(m) {
+  mode = m;
+  post({ type: 'set_mode', mode: m });
+}
+
+// ── Conversation rendering ────────────────────────────────────────────────────
+function appendTurnToCard(nodeId, role, content, source) {
+  const convo = document.getElementById(`convo-${nodeId}`);
+  if (!convo) return;
+
+  // Remove streaming placeholder if assistant turn arriving
+  if (role === 'assistant') {
+    convo.querySelector('.streaming-turn')?.remove();
+  }
+
+  const div = document.createElement('div');
+  div.className = `turn ${role}${source === 'human' ? ' human-authored' : ''}`;
+  div.textContent = content;
+  convo.appendChild(div);
+  scrollConvo(nodeId);
+}
+
+function addStreamingPlaceholder(nodeId) {
+  const convo = document.getElementById(`convo-${nodeId}`);
+  if (!convo) return;
+  const div = document.createElement('div');
+  div.className = 'turn assistant streaming streaming-turn';
+  div.textContent = '';
+  convo.appendChild(div);
+  scrollConvo(nodeId);
+}
+
+function showHumanResponseArea(nodeId, userMessage) {
+  appendTurnToCard(nodeId, 'user', userMessage, 'chain');
+  setNodeStatus(nodeId, 'awaiting');
+}
+
+function showChainInjectBanner(toNodeId, fromNodeId, text) {
+  const convo = document.getElementById(`convo-${toNodeId}`);
+  if (!convo) return;
+  const div = document.createElement('div');
+  div.className = 'chain-inject-banner';
+  div.textContent = `⛓ Injected from Node ${fromNodeId} — confirm or edit below`;
+  convo.appendChild(div);
+
+  const ta = document.getElementById(`textarea-${toNodeId}`);
+  if (ta) ta.value = text;
+  scrollConvo(toNodeId);
+}
+
+function scrollConvo(nodeId) {
+  const convo = document.getElementById(`convo-${nodeId}`);
+  if (convo) convo.scrollTop = convo.scrollHeight;
+}
+
+function setNodeStatus(nodeId, statusKey) {
+  const card = document.getElementById(`node-${nodeId}`);
+  if (!card) return;
+  card.className = card.className.replace(/status-\S+/g, '').trim() + ` status-${statusKey}`;
+  const dot = card.querySelector('.status-dot');
+  if (dot) {
+    dot.className = `status-dot ${statusKey}`;
+  }
+  updateNodeInArray(nodeId, { status: statusKey.toUpperCase() });
+}
+
+// ── State helpers ─────────────────────────────────────────────────────────────
+function getNode(nodeId) { return nodes.find(n => n.id === nodeId) || null; }
+
+function updateNodeInArray(nodeId, updates) {
+  const n = nodes.find(n => n.id === nodeId);
+  if (n) Object.assign(n, updates);
+  return n;
+}
+
+function refreshNodeCard(nodeId) {
+  const node = getNode(nodeId);
+  if (!node) return;
+  const card = document.getElementById(`node-${nodeId}`);
+  if (!card) return;
+
+  // Preserve conversation history div — only refresh header/config/input
+  const convo = document.getElementById(`convo-${nodeId}`);
+  const savedConvo = convo ? convo.innerHTML : '';
+
+  const isHuman = node.slot_type === 'HUMAN';
+  card.className = `node-card status-${(node.status || 'idle').toLowerCase()}${isHuman ? ' human-slot' : ''}`;
+  card.innerHTML = nodeCardHtml(node);
+
+  // Restore conversation
+  const newConvo = document.getElementById(`convo-${nodeId}`);
+  if (newConvo && savedConvo) newConvo.innerHTML = savedConvo;
+  rebuildChainSelects();
+}
+
+function rebuildAllProviderSelects() {
+  nodes.forEach(n => {
+    if (n.slot_type === 'LLM') {
+      const sel = document.querySelector(`#node-${n.id} select[aria-label="LLM provider"]`);
+      if (!sel) return;
+      const curr = n.provider?.display;
+      sel.innerHTML = '<option value="">— select —</option>' +
+        providers.map(p =>
+          `<option value="${escAttr(JSON.stringify(p))}"${curr === p.display ? ' selected' : ''}>${escHtml(p.display)}</option>`
+        ).join('');
+    }
+  });
+  updateStatusBar();
+}
+
+function rebuildChainSelects() {
+  nodes.forEach(n => {
+    const sel = document.querySelector(`#node-${n.id} .chain-sel`);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">No chain</option>' +
+      nodes.filter(x => x.id !== n.id).map(x =>
+        `<option value="${x.id}"${n.chain_target === x.id ? ' selected' : ''}>→ Node ${x.id} (${escHtml(x.label)})</option>`
+      ).join('');
+  });
+}
+
+function rebuildDispatchTargets() {
+  const sel = document.getElementById('dispatch-target');
+  if (!sel) return;
+  sel.innerHTML = '<option value="all">→ All nodes</option>' +
+    nodes.map(n =>
+      `<option value="${n.id}">→ Node ${n.id} (${escHtml(n.label)})</option>`
+    ).join('');
+}
+
+function updateStatusBar() {
+  document.getElementById('sb-nodes').textContent     = `${nodes.length}/10 nodes`;
+  document.getElementById('sb-providers').textContent = `${providers.length} providers`;
+}
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+function toggleSessions() {
+  const d = document.getElementById('sessions-drawer');
+  d.classList.toggle('open');
+  if (d.classList.contains('open')) post({ type: 'list_sessions' });
+}
+
+function renderSessionsList() {
+  const el = document.getElementById('sessions-list');
+  if (!sessions.length) {
+    el.innerHTML = '<span style="color:var(--fg2);font-size:11px;padding:6px">No sessions yet.</span>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => `
+    <div class="session-item" onclick="loadSession('${escAttr(s.session_id)}')"
+         role="button" tabindex="0" aria-label="Load session ${s.session_id}">
+      <div class="s-id">${escHtml(s.session_id)}</div>
+      <div class="s-label">${escHtml(s.label || 'Untitled')}</div>
+      <div class="s-meta">
+        ${s.mode || 'hub'} · ${s.turn_count || 0} turns · ${s.node_count || 0} nodes
+        ${s.ended_at ? ' · ended' : ' · active'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadSession(sessionId) {
+  post({ type: 'load_session', session_id: sessionId });
+  toggleSessions();
+}
+
+function newSession() {
+  post({ type: 'new_session' });
+}
+
+function exportSession() {
+  const fmt = confirm('Export as JSONL?\n\nOK = JSONL (raw turns, wolf_engine compatible)\nCancel = Markdown (handoff log)');
+  post({ type: 'export_session', format: fmt ? 'jsonl' : 'markdown' });
+}
+
+function openNotes() {
+  post({ type: 'open_notes' });
+}
+
+// ── Help ──────────────────────────────────────────────────────────────────────
+function toggleHelp() {
+  document.getElementById('help-drawer').classList.toggle('open');
+}
+
+function fetchHelp() {
+  fetch('/api/multi_ai/help')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('help-api-result').style.display = 'block';
+      document.getElementById('help-api-pre').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('help-drawer').classList.add('open');
+    })
+    .catch(e => toast('Bridge not running — /api/multi_ai/help unavailable', true));
+}
+
+// ── File download ─────────────────────────────────────────────────────────────
+function downloadFile(filename, content) {
+  const a    = document.createElement('a');
+  const blob = new Blob([content], { type: 'text/plain' });
+  a.href     = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function toast(msg, isErr = false) {
+  const el = document.getElementById('toast');
+  el.textContent    = msg;
+  el.style.color    = isErr ? 'var(--red)' : 'var(--fg)';
+  el.style.border   = `1px solid ${isErr ? 'var(--red)' : 'var(--border)'}`;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── XSS escaping ─────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

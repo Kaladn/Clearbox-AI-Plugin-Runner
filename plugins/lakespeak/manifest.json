@@ -1,0 +1,15 @@
+{
+  "display_name": "LakeSpeak",
+  "description": "Zero-LLM hybrid retrieval engine. BM25 + census scoring (6-1-6 adjacency co-occurrence counts). Deterministic quality gates, anchor reranking, grounding policy. No embeddings. No model calls. Ever.",
+  "mount_prefix": "/api/lakespeak",
+  "type": "router",
+  "requires": ["rank_bm25"],
+  "config_section": "lakespeak",
+  "entry": "api.router",
+  "routes_var": "router",
+  "version": "0.1.0",
+  "regime_flags": {
+    "LAKESPEAK_NO_LLM": "Absolute. Zero model calls in LakeSpeak, ingest or query.",
+    "LAKESPEAK_TWO_SPEC_SEPARATION": "FormatDetector and GlueEngine are independent builds."
+  }
+}

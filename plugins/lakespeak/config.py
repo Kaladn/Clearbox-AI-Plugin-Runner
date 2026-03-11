@@ -20,14 +20,12 @@ DEFAULTS: Dict[str, Any] = {
     "chunk_size": 512,          # tokens per chunk
     "chunk_overlap": 64,        # tokens overlap
     "bm25_topk": 20,            # BM25 candidates
-    "dense_topk": 20,           # Dense candidates
+    "census_topk": 20,          # Census candidates
     "final_topk": 5,            # Final results after rerank
-    "bm25_weight": 0.4,         # RRF weight for BM25
-    "dense_weight": 0.6,        # RRF weight for dense
+    "bm25_weight": 0.4,         # RRF weight for BM25 (locked)
+    "census_weight": 0.6,       # RRF weight for census — 6-1-6 adjacency counts (locked)
     "anchor_weight": 0.3,       # Reranker anchor contribution
     "min_score": 0.01,          # Quality Gate minimum score (scores normalized to [0,1])
-    "dense_model": "all-MiniLM-L6-v2",
-    "dense_enabled": True,      # Can be False for sparse-only mode
 }
 
 

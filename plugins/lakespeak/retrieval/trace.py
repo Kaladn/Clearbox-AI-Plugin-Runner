@@ -20,7 +20,7 @@ class TraceBuilder:
     Usage:
         tb = TraceBuilder(query_text="test", mode="grounded")
         tb.set_lexicon(present=["foo"], absent=["bar"])
-        tb.set_retrieval(bm25=5, dense=3, hybrid=8)
+        tb.set_retrieval(bm25=5, census=3, hybrid=8)
         tb.set_rerank(anchors=["foo"], boost=True, topk=5)
         tb.set_verdict("acceptable", [], grounded=True)
         trace = tb.build()
@@ -38,7 +38,7 @@ class TraceBuilder:
 
         # Retrieval
         self._bm25_hits = 0
-        self._dense_hits = 0
+        self._census_hits = 0
         self._hybrid_candidates = 0
         self._t_retrieval_done: Optional[int] = None
 
@@ -76,11 +76,11 @@ class TraceBuilder:
     def set_retrieval(
         self,
         bm25: int = 0,
-        dense: int = 0,
+        census: int = 0,
         hybrid: int = 0,
     ) -> TraceBuilder:
         self._bm25_hits = bm25
-        self._dense_hits = dense
+        self._census_hits = census
         self._hybrid_candidates = hybrid
         return self
 
@@ -141,7 +141,7 @@ class TraceBuilder:
             lexicon_present=self._lexicon_present,
             lexicon_absent=self._lexicon_absent,
             bm25_hits=self._bm25_hits,
-            dense_hits=self._dense_hits,
+            census_hits=self._census_hits,
             hybrid_candidates=self._hybrid_candidates,
             anchors_used=self._anchors_used,
             anchor_boost_applied=self._anchor_boost,

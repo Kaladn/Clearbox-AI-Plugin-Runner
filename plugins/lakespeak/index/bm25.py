@@ -164,7 +164,7 @@ class BM25Index:
                 score=score,
                 source="bm25",
                 bm25_score=score,
-                dense_score=0.0,
+                census_score=0.0,
                 anchor_score=0.0,
             ))
 

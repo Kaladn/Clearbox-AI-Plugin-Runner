@@ -1,0 +1,13 @@
+{
+  "display_name": "Market Oracle",
+  "description": "6-1-6 financial cognitive substrate. Bidirectional causal validation across time-ordered market capsules. Regime change detection from rolling consistency bands. No ML models. NCV-73 vector analysis. SQLite storage. Lee's own architecture.",
+  "mount_prefix": "/api/market_oracle",
+  "type": "router",
+  "requires": ["yfinance", "numpy", "matplotlib"],
+  "config_section": "market_oracle",
+  "ui_panel": "ui/market_oracle_panel.html",
+  "entry": "api.py",
+  "routes_var": "ROUTES",
+  "standalone": true,
+  "version": "1.0.0"
+}

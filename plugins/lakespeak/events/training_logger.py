@@ -153,9 +153,8 @@ class TrainingEventLogger:
         retrieval_ms: int = 0,
         bm25_enabled: bool = True,
         bm25_hits: int = 0,
-        dense_enabled: bool = False,
-        dense_hits: int = 0,
-        dense_model: Optional[str] = None,
+        census_enabled: bool = False,
+        census_hits: int = 0,
         candidates: List[Dict[str, Any]] = None,
         evidence_set_hash: str = "",
         # Rerank
@@ -221,10 +220,9 @@ class TrainingEventLogger:
                     "enabled": bm25_enabled,
                     "hits": bm25_hits,
                 },
-                "dense": {
-                    "enabled": dense_enabled,
-                    "hits": dense_hits,
-                    "embed_model": dense_model,
+                "census": {
+                    "enabled": census_enabled,
+                    "hits": census_hits,
                 },
                 "candidates": candidates or [],
                 "evidence_set_hash": evidence_set_hash,

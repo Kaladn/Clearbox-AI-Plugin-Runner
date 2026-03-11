@@ -1,0 +1,11 @@
+{
+  "display_name": "Visual I/O",
+  "description": "Screen capture worker and vector analysis engine. Lee's own vision tech — no YOLO, no OpenCV. Captures frames, builds ScreenVectorState, emits JSONL evidence events.",
+  "mount_prefix": "/api/visual_io",
+  "type": "router",
+  "requires": ["numpy", "mss"],
+  "config_section": "visual_io",
+  "entry": "api.router",
+  "routes_var": "router",
+  "version": "0.1.0"
+}

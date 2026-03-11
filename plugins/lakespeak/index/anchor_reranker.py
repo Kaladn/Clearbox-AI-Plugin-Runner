@@ -194,7 +194,7 @@ def rerank(
             score=final_score,
             source="reranked",
             bm25_score=c.bm25_score,
-            dense_score=c.dense_score,
+            census_score=c.census_score,
             anchor_score=anchor_rel,
         ))
 

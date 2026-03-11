@@ -123,7 +123,7 @@ class ReasoningTrace:
     lexicon_absent: List[str] = field(default_factory=list)
     # Retrieval phase
     bm25_hits: int = 0
-    dense_hits: int = 0
+    census_hits: int = 0
     hybrid_candidates: int = 0
     # Reranking phase
     anchors_used: List[str] = field(default_factory=list)
@@ -209,7 +209,7 @@ class ScoredChunk:
     chunk_id: str = ""
     receipt_id: str = ""
     score: float = 0.0
-    source: str = ""                            # "bm25" | "dense" | "hybrid" | "reranked"
+    source: str = ""                            # "bm25" | "census" | "hybrid" | "reranked"
     bm25_score: float = 0.0
-    dense_score: float = 0.0
+    census_score: float = 0.0
     anchor_score: float = 0.0

@@ -1,0 +1,12 @@
+{
+  "display_name": "Net Log",
+  "description": "Maniac-level internet traffic logging. Full connection tracking with process ownership, byte counters, per-connection JSONL events. Optional packet-level capture if scapy is available and elevated.",
+  "mount_prefix": "/api/netlog",
+  "type": "router",
+  "requires": ["psutil"],
+  "optional_requires": ["scapy"],
+  "config_section": "netlog",
+  "entry": "api.router",
+  "routes_var": "router",
+  "version": "0.1.0"
+}

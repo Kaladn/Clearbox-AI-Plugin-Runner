@@ -176,24 +176,21 @@ async def lakespeak_status():
         engine = get_engine()
         bm25 = engine._ensure_bm25()
 
-        # Check dense index availability
-        from lakespeak.index.dense import DenseIndex
-        dense_avail = DenseIndex.is_available()
-        dense_count = 0
-        if dense_avail:
-            try:
-                dense = engine._ensure_dense()
-                if dense:
-                    dense_count = dense.doc_count
-            except Exception:
-                pass
+        # Check census index availability
+        census_count = 0
+        try:
+            census = engine._ensure_census()
+            if census:
+                census_count = census.doc_count
+        except Exception:
+            pass
 
         return LakeSpeakStatusResponse(
             version=VERSION,
             enabled=config.get("enabled", True),
             bm25_doc_count=bm25.doc_count,
-            dense_available=dense_avail,
-            dense_doc_count=dense_count,
+            census_available=True,
+            census_doc_count=census_count,
             config=config,
         )
     except Exception as e:

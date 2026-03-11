@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="plugin" content="market_oracle">
+<meta name="version" content="1.0.0">
+<meta name="api-help" content="/api/market_oracle/help">
+<meta name="api-config" content="/api/market_oracle/config">
+<title>Market Oracle — 6-1-6 Financial Regime Analysis</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #06A77D;
+    --orange: #F77F00;
+    --red: #D62828;
+    --purple: #4A0E4E;
+    --input-bg: #0d1117;
+    --help-bg: #1c2333;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .oracle-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* --- Header --- */
+  .oracle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+
+  .oracle-header h1 { font-size: 24px; font-weight: 600; }
+  .oracle-header .subtitle { color: var(--text-dim); font-size: 14px; }
+
+  .btn-help-panel {
+    background: var(--help-bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .btn-help-panel:hover { color: var(--text); border-color: var(--accent); }
+
+  /* --- Help Panel (side drawer) --- */
+  .help-drawer {
+    position: fixed;
+    top: 0; right: -480px;
+    width: 480px;
+    height: 100vh;
+    background: var(--help-bg);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px;
+    transition: right 0.25s ease;
+    z-index: 200;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .help-drawer.open { right: 0; }
+  .help-drawer h2 { color: var(--accent); font-size: 16px; margin-bottom: 16px; }
+  .help-drawer h3 { color: var(--text); font-size: 13px; font-weight: 600; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .help-drawer p, .help-drawer li { color: var(--text-dim); margin-bottom: 6px; }
+  .help-drawer code {
+    background: var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .help-close {
+    position: absolute; top: 16px; right: 16px;
+    cursor: pointer; color: var(--text-dim); font-size: 20px;
+  }
+  .help-close:hover { color: var(--text); }
+  .regime-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .pill-ordered  { background: rgba(6,167,125,0.2);  color: #06A77D; }
+  .pill-moderate { background: rgba(247,127,0,0.2);  color: #F77F00; }
+  .pill-volatile { background: rgba(214,40,40,0.2);  color: #D62828; }
+  .pill-chaotic  { background: rgba(74,14,78,0.3);   color: #c084fc; }
+
+  /* --- Input Panel --- */
+  .config-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .config-panel h2 { font-size: 16px; margin-bottom: 16px; color: var(--accent); }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+
+  .field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .field-group label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: help;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  .field-hint:hover { color: var(--accent); }
+
+  .field-group input,
+  .field-group select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .field-group input:focus,
+  .field-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .ticker-input { display: flex; gap: 8px; }
+  .ticker-input input {
+    flex: 1;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  /* --- Buttons --- */
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary  { background: var(--accent); color: #fff; }
+  .btn-compare  { background: var(--orange); color: #fff; }
+  .btn-add      { background: var(--border); color: var(--text); padding: 10px 14px; }
+
+  /* --- Ticker Tags --- */
+  .ticker-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .ticker-tag {
+    background: var(--border);
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ticker-tag .remove { cursor: pointer; color: var(--red); font-size: 16px; }
+
+  /* --- Advanced Config (collapsible) --- */
+  .advanced-toggle {
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 12px;
+    user-select: none;
+  }
+  .advanced-config { display: none; margin-top: 12px; }
+  .advanced-config.open { display: block; }
+
+  /* --- Results --- */
+  .results-area { display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .result-card h3 { font-size: 18px; margin-bottom: 12px; }
+
+  /* Verdict banner */
+  .verdict-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .verdict-banner.ORDERED  { background: rgba(6,167,125,0.15);  border-left: 4px solid var(--green); }
+  .verdict-banner.MODERATE { background: rgba(247,127,0,0.15);  border-left: 4px solid var(--orange); }
+  .verdict-banner.VOLATILE { background: rgba(214,40,40,0.15);  border-left: 4px solid var(--red); }
+  .verdict-banner.CHAOTIC  { background: rgba(74,14,78,0.15);   border-left: 4px solid var(--purple); }
+  .verdict-banner .regime-label { font-size: 24px; font-weight: 700; }
+  .verdict-banner .verdict-details { font-size: 14px; color: var(--text-dim); }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .metric-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    cursor: help;
+  }
+  .metric-box:hover { border-color: var(--accent); }
+  .metric-box .metric-value { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .metric-box .metric-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Regime timeline */
+  .regime-timeline {
+    display: flex;
+    width: 100%;
+    height: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+  .regime-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .regime-segment:hover { opacity: 0.8; }
+  .regime-segment.ORDERED  { background: var(--green); }
+  .regime-segment.MODERATE { background: var(--orange); }
+  .regime-segment.VOLATILE { background: var(--red); }
+  .regime-segment.CHAOTIC  { background: var(--purple); }
+
+  /* Regime changes table */
+  .changes-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .changes-table th {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  .changes-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+  .severity-CRITICAL { color: var(--red); font-weight: 700; }
+  .severity-MAJOR    { color: var(--orange); font-weight: 600; }
+  .severity-MINOR    { color: var(--text-dim); }
+
+  /* Distribution bar */
+  .dist-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .dist-segment { transition: width 0.3s; }
+
+  /* Output path row */
+  .output-paths {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  .output-path-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .output-path-btn:hover { border-color: var(--accent); }
+  .output-path-btn .path-text {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* Loading */
+  .loading { text-align: center; padding: 40px; color: var(--text-dim); }
+  .loading .spinner {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status bar */
+  .status-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8px 24px;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Comparison table */
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table th {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 2px solid var(--border);
+    color: var(--accent);
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .compare-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+  .compare-table tr:hover { background: rgba(88,166,255,0.05); }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 100;
+    pointer-events: none;
+    white-space: pre-line;
+    max-width: 300px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="oracle-container">
+
+  <!-- Header -->
+  <div class="oracle-header">
+    <div>
+      <h1>Market Oracle</h1>
+      <div class="subtitle">6-1-6 Cognitive Substrate — Financial Regime Change Analysis | CRSA-616</div>
+    </div>
+    <button class="btn-help-panel" onclick="openHelp()">? Help / API Schema</button>
+  </div>
+
+  <!-- Help Drawer (usable by AI and human) -->
+  <div class="help-drawer" id="helpDrawer">
+    <span class="help-close" onclick="closeHelp()">&times;</span>
+    <h2>Market Oracle — Help &amp; API Schema</h2>
+
+    <h3>What This Plugin Does</h3>
+    <p>Fetches historical market data via <code>yfinance</code>, builds 6-1-6 temporal capsules
+    (6 prev + 1 anchor + 6 next trading days), runs bidirectional causal validation, detects
+    behavioral regimes from rolling consistency bands, stores results in SQLite.</p>
+    <p><strong>No ML models. No embeddings. Count-based deterministic analysis.</strong></p>
+
+    <h3>Regime Types</h3>
+    <p>
+      <span class="regime-pill pill-ordered">ORDERED</span> consistency &gt; 0.60 — predictable, institutional behavior. Risk: LOW<br>
+      <span class="regime-pill pill-moderate">MODERATE</span> 0.40–0.60 — mixed signals, transitional. Risk: MEDIUM<br>
+      <span class="regime-pill pill-volatile">VOLATILE</span> 0.25–0.40 — weak causal structure. Risk: HIGH<br>
+      <span class="regime-pill pill-chaotic">CHAOTIC</span> ≤ 0.25 — no causal structure. Risk: EXTREME
+    </p>
+
+    <h3>Regime Change Severity</h3>
+    <p>
+      <strong class="severity-CRITICAL">CRITICAL</strong> — delta &gt; 0.20<br>
+      <strong class="severity-MAJOR">MAJOR</strong> — delta 0.10–0.20<br>
+      <span class="severity-MINOR">MINOR</span> — delta &lt; 0.10
+    </p>
+
+    <h3>Field Reference</h3>
+    <p><strong>Pattern Break Threshold</strong> — % price change that counts as a break. Default: 5.0. Lower = more sensitive.</p>
+    <p><strong>Capsule Window (N-1-N)</strong> — positions on each side of anchor. Default: 6 (13-point window). Sets NCV-73 at N=6.</p>
+    <p><strong>Regime Rolling Window</strong> — days used to compute rolling avg consistency before classifying a regime. Default: 10.</p>
+    <p><strong>Min Regime Duration</strong> — minimum consecutive days to call it a real regime. Shorter segments are absorbed by neighbor. Default: 5.</p>
+    <p><strong>High Consistency Threshold</strong> — above this = causal chain. Default: 0.70.</p>
+    <p><strong>Low Consistency Threshold</strong> — below this = anomaly. Default: 0.30.</p>
+    <p><strong>Min Chain Length</strong> — min days above high threshold to count as a causal chain. Default: 5.</p>
+
+    <h3>API Endpoints</h3>
+    <p><code>POST /api/market_oracle/analyze</code><br>
+    Body: <code>{"tickers":["MSFT"],"config":{"period":"2y",...}}</code><br>
+    Returns: full analysis result or comparison.</p>
+    <p><code>POST /api/market_oracle/history</code><br>
+    Body: <code>{"ticker":"MSFT","limit":20}</code></p>
+    <p><code>POST /api/market_oracle/regimes</code><br>
+    Body: <code>{"analysis_id":42}</code></p>
+    <p><code>GET /api/market_oracle/config</code> — default config + regime band schema</p>
+    <p><code>GET /api/market_oracle/help</code> — full machine-readable API schema (this content, as JSON)</p>
+
+    <h3>Output Paths</h3>
+    <p>All file output is saved to absolute paths under <code>~/.clearbox/market_oracle/</code></p>
+    <p>Reports: <code>~/.clearbox/market_oracle/reports/</code><br>
+    Charts: <code>~/.clearbox/market_oracle/charts/</code><br>
+    Database: <code>~/.clearbox/market_oracle/market_oracle.db</code></p>
+
+    <h3>Storage Schema</h3>
+    <p>SQLite tables: <code>analyses</code>, <code>regimes</code>, <code>regime_changes</code>, <code>trading_days</code>.
+    WAL mode. Foreign keys enforced. Safe to delete and rebuild — all data regenerable from yfinance.</p>
+
+    <div style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="fetchLiveHelp()" style="font-size:12px;padding:6px 12px;">
+        Fetch Live /api/market_oracle/help
+      </button>
+      <pre id="liveHelpOutput" style="margin-top:10px;font-size:10px;color:var(--text-dim);white-space:pre-wrap;display:none;"></pre>
+    </div>
+  </div>
+
+  <!-- Configuration Panel -->
+  <div class="config-panel">
+    <h2>Analysis Configuration</h2>
+
+    <div class="config-grid">
+      <!-- Ticker input -->
+      <div class="field-group" style="grid-column: span 2;">
+        <div class="field-label-row">
+          <label>Ticker(s)</label>
+          <span class="field-hint" title="Stock or crypto symbol. Examples: MSFT, AAPL, XRP-USD, BTC-USD. Multiple tickers = comparison mode.">? hint</span>
+        </div>
+        <div class="ticker-input">
+          <input type="text" id="tickerInput" placeholder="MSFT" maxlength="12"
+                 onkeydown="if(event.key==='Enter')addTicker()"
+                 aria-label="Enter ticker symbol">
+          <button class="btn btn-add" onclick="addTicker()">+ Add</button>
+        </div>
+        <div class="ticker-tags" id="tickerTags"></div>
+      </div>
+
+      <!-- Period -->
+      <div class="field-group">
+        <div class="field-label-row">
+          <label>Time Period</label>
+          <span class="field-hint" title="How far back to fetch from yfinance. Minimum 10 trading days required. Longer periods show more regime cycles.">? hint</span>
+        </div>
+        <select id="periodSelect" aria-label="Analysis time period">
+          <option value="1mo">1 Month</option>
+          <option value="3mo">3 Months</option>
+          <option value="6mo">6 Months</option>
+          <option value="1y">1 Year</option>
+          <option value="2y" selected>2 Years</option>
+          <option value="5y">5 Years</option>
+          <option value="10y">10 Years</option>
+          <option value="max">Maximum</option>
+        </select>
+      </div>
+
+      <!-- Pattern break threshold -->
+      <div class="field-group">
+        <div class="field-label-row">
+          <label>Pattern Break Threshold (%)</label>
+          <span class="field-hint" title="% price change in a single day that counts as a pattern break. Default: 5.0. Lower values = more breaks detected.">? hint</span>
+        </div>
+        <input type="number" id="breakThreshold" value="5.0" min="0.5" max="50" step="0.5"
+               aria-label="Pattern break threshold in percent">
+      </div>
+    </div>
+
+    <!-- Advanced settings (collapsed) -->
+    <div class="advanced-toggle" onclick="toggleAdvanced()">
+      <span id="advArrow">&#9654;</span> Advanced Parameters
+    </div>
+
+    <div class="advanced-config" id="advancedConfig">
+      <div class="config-grid" style="margin-top: 12px;">
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>Capsule Window N (N-1-N)</label>
+            <span class="field-hint" title="Number of positions on each side of the anchor. Default: 6 → 13-point window → NCV-73 (6×6 prev + 1 anchor + 6×6 next = 73 dims). Changing N changes vector size.">? hint</span>
+          </div>
+          <input type="number" id="capsuleN" value="6" min="2" max="20" step="1"
+                 aria-label="Capsule window N">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>Regime Rolling Window (days)</label>
+            <span class="field-hint" title="Days used to compute rolling average consistency before classifying a regime. Default: 10. Higher = smoother, fewer transitions. Requires at least this many capsules.">? hint</span>
+          </div>
+          <input type="number" id="regimeWindow" value="10" min="3" max="60" step="1"
+                 aria-label="Regime rolling window in days">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>Min Regime Duration (days)</label>
+            <span class="field-hint" title="Segments shorter than this are absorbed into the preceding regime. Default: 5. Prevents single-day regime noise.">? hint</span>
+          </div>
+          <input type="number" id="minRegime" value="5" min="2" max="30" step="1"
+                 aria-label="Minimum regime duration in days">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>High Consistency Threshold</label>
+            <span class="field-hint" title="Consistency >= this counts toward a causal chain. Also defines ORDERED regime upper boundary in MetricsCalculator verdict. Default: 0.70.">? hint</span>
+          </div>
+          <input type="number" id="consistencyHigh" value="0.7" min="0.3" max="0.95" step="0.05"
+                 aria-label="High consistency threshold">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>Low Consistency Threshold</label>
+            <span class="field-hint" title="Consistency < this = anomaly day (consequence defied cause). Default: 0.30.">? hint</span>
+          </div>
+          <input type="number" id="consistencyLow" value="0.3" min="0.05" max="0.5" step="0.05"
+                 aria-label="Low consistency threshold">
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label>Min Chain Length (days)</label>
+            <span class="field-hint" title="Minimum consecutive days above high threshold to count as a causal chain. Default: 5.">? hint</span>
+          </div>
+          <input type="number" id="minChain" value="5" min="2" max="20" step="1"
+                 aria-label="Minimum chain length in days">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display: flex; gap: 12px; margin-top: 20px;">
+      <button class="btn btn-primary" id="btnAnalyze" onclick="runAnalysis()"
+              aria-label="Run analysis for entered ticker(s)">
+        Analyze
+      </button>
+      <button class="btn btn-compare" id="btnCompare" onclick="runAnalysis()" style="display:none;"
+              aria-label="Compare all entered tickers side by side">
+        Compare All
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Area -->
+  <div class="results-area" id="resultsArea"></div>
+
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <span id="statusText">Ready — enter a ticker and click Analyze</span>
+  <span>Market Oracle v1.0.0 — CRSA-616 | <a href="/api/market_oracle/help" style="color:var(--accent);" target="_blank">API Schema</a></span>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let tickers = [];
+let analysisResults = {};
+
+// ============================================================
+// Help drawer
+// ============================================================
+function openHelp() {
+  document.getElementById('helpDrawer').classList.add('open');
+}
+function closeHelp() {
+  document.getElementById('helpDrawer').classList.remove('open');
+}
+
+async function fetchLiveHelp() {
+  const out = document.getElementById('liveHelpOutput');
+  out.style.display = 'block';
+  out.textContent = 'Fetching /api/market_oracle/help...';
+  try {
+    const r = await fetch('/api/market_oracle/help');
+    const data = await r.json();
+    out.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    out.textContent = 'Error: ' + e.message + '\n(Bridge server must be running)';
+  }
+}
+
+// ============================================================
+// Ticker management
+// ============================================================
+function addTicker() {
+  const input = document.getElementById('tickerInput');
+  const ticker = input.value.trim().toUpperCase();
+  if (!ticker || tickers.includes(ticker)) { input.value = ''; return; }
+  tickers.push(ticker);
+  input.value = '';
+  renderTickers();
+}
+
+function removeTicker(ticker) {
+  tickers = tickers.filter(t => t !== ticker);
+  renderTickers();
+}
+
+function renderTickers() {
+  const container = document.getElementById('tickerTags');
+  container.innerHTML = tickers.map(t =>
+    `<div class="ticker-tag">${t}<span class="remove" onclick="removeTicker('${t}')" aria-label="Remove ${t}">&times;</span></div>`
+  ).join('');
+  document.getElementById('btnCompare').style.display = tickers.length > 1 ? 'inline-block' : 'none';
+}
+
+// ============================================================
+// Advanced toggle
+// ============================================================
+function toggleAdvanced() {
+  const el    = document.getElementById('advancedConfig');
+  const arrow = document.getElementById('advArrow');
+  el.classList.toggle('open');
+  arrow.innerHTML = el.classList.contains('open') ? '&#9660;' : '&#9654;';
+}
+
+// ============================================================
+// Gather config from UI fields
+// All keys match DEFAULT_CONFIG and api.py handler expectations exactly.
+// ============================================================
+function gatherConfig() {
+  return {
+    period:                     document.getElementById('periodSelect').value,
+    pattern_break_threshold:    parseFloat(document.getElementById('breakThreshold').value),
+    capsule_prev_positions:     parseInt(document.getElementById('capsuleN').value),
+    capsule_next_positions:     parseInt(document.getElementById('capsuleN').value),
+    regime_rolling_window:      parseInt(document.getElementById('regimeWindow').value),
+    min_regime_days:            parseInt(document.getElementById('minRegime').value),
+    causal_consistency_high:    parseFloat(document.getElementById('consistencyHigh').value),
+    causal_consistency_low:     parseFloat(document.getElementById('consistencyLow').value),
+    min_chain_length:           parseInt(document.getElementById('minChain').value),
+  };
+}
+
+// ============================================================
+// Run analysis — POST to /api/market_oracle/analyze
+// ============================================================
+async function runAnalysis() {
+  const targets = tickers.length > 0
+    ? tickers
+    : [document.getElementById('tickerInput').value.trim().toUpperCase()];
+
+  if (!targets[0]) {
+    alert('Enter at least one ticker symbol (e.g. MSFT, XRP-USD)');
+    return;
+  }
+
+  const config      = gatherConfig();
+  const resultsArea = document.getElementById('resultsArea');
+  resultsArea.innerHTML = '<div class="loading"><div class="spinner"></div><div style="margin-top:12px;">Analyzing ' + targets.join(', ') + '…</div></div>';
+  setStatus('Analyzing ' + targets.join(', ') + '…');
+  disableButtons(true);
+
+  try {
+    const response = await fetch('/api/market_oracle/analyze', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ tickers: targets, config: config }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status} — ${response.statusText}`);
+    const data = await response.json();
+    analysisResults = data;
+    renderResults(data);
+    setStatus('Analysis complete — ' + targets.join(', '));
+  } catch (err) {
+    resultsArea.innerHTML = `
+      <div class="result-card">
+        <h3>Error</h3>
+        <p style="color:var(--red)">${err.message}</p>
+        <p style="color:var(--text-dim);margin-top:8px;">
+          Make sure the Market Oracle plugin is running and the bridge server is up (port 5050).
+          <br>Check <a href="/api/market_oracle/help" style="color:var(--accent);" target="_blank">/api/market_oracle/help</a> for API schema.
+        </p>
+      </div>`;
+    setStatus('Error: ' + err.message);
+  } finally {
+    disableButtons(false);
+  }
+}
+
+function disableButtons(disabled) {
+  document.getElementById('btnAnalyze').disabled = disabled;
+  const comp = document.getElementById('btnCompare');
+  if (comp) comp.disabled = disabled;
+}
+
+// ============================================================
+// Render results
+// ============================================================
+function renderResults(data) {
+  const area = document.getElementById('resultsArea');
+  if (data.comparison) {
+    area.innerHTML = renderComparisonTable(data.comparison) +
+      Object.values(data.results).map(r => renderSingleResult(r)).join('');
+  } else if (data.ticker) {
+    area.innerHTML = renderSingleResult(data);
+  } else {
+    area.innerHTML = Object.values(data).map(r => renderSingleResult(r)).join('');
+  }
+}
+
+function renderSingleResult(r) {
+  if (!r || r.error) {
+    return `<div class="result-card"><h3>${(r && r.ticker) || '?'} — Error</h3><p style="color:var(--red)">${r ? r.error : 'No data'}</p></div>`;
+  }
+
+  const m   = r.metrics;
+  const reg = r.regime;
+
+  // Metric tooltips — sourced from actual class docstrings and CONTRACT
+  const metricHelp = {
+    avg_consistency:    'Average (backward_score + forward_score) / 2 across all capsules.\nRange 0.0 (chaos) → 1.0 (fully predictable).',
+    pattern_break_rate: '% of trading days with |price_change| > pattern_break_threshold.\nSource: PatternDetector._detect_pattern_breaks()',
+    anomaly_rate:       '% of trading days with consistency < causal_consistency_low.\nSource: PatternDetector._detect_anomalies()',
+    total_changes:      'Number of regime transitions detected by RegimeDetector.\nChange = rolling avg consistency crosses a band boundary and stays for min_regime_days.',
+    stability:          '% of total days occupied by the single longest regime segment.',
+    avg_duration:       'Mean duration in days across all detected regime segments.',
+  };
+
+  return `
+    <div class="result-card" role="region" aria-label="${r.ticker} analysis result">
+      <h3>${r.ticker} — ${r.period}</h3>
+
+      <!-- Verdict banner -->
+      <div class="verdict-banner ${reg.current}" title="Current regime: ${reg.current}. Regime types: ORDERED>0.60, MODERATE 0.40-0.60, VOLATILE 0.25-0.40, CHAOTIC<=0.25">
+        <div class="regime-label">${reg.current}</div>
+        <div class="verdict-details">
+          <div>${m.verdict}</div>
+          <div>Grade: ${m.grade} | Risk: ${m.risk}</div>
+        </div>
+      </div>
+
+      <!-- Key metrics -->
+      <div class="metrics-grid">
+        <div class="metric-box" title="${metricHelp.avg_consistency}">
+          <div class="metric-value">${m.avg_consistency.toFixed(3)}</div>
+          <div class="metric-label">Causal Consistency</div>
+        </div>
+        <div class="metric-box" title="${metricHelp.pattern_break_rate}">
+          <div class="metric-value">${m.pattern_break_rate.toFixed(1)}%</div>
+          <div class="metric-label">Pattern Break Rate</div>
+        </div>
+        <div class="metric-box" title="${metricHelp.anomaly_rate}">
+          <div class="metric-value">${m.anomaly_rate.toFixed(1)}%</div>
+          <div class="metric-label">Anomaly Rate</div>
+        </div>
+        <div class="metric-box" title="${metricHelp.total_changes}">
+          <div class="metric-value">${reg.total_changes}</div>
+          <div class="metric-label">Regime Changes</div>
+        </div>
+        <div class="metric-box" title="${metricHelp.stability}">
+          <div class="metric-value">${reg.stability.toFixed(0)}%</div>
+          <div class="metric-label">Stability</div>
+        </div>
+        <div class="metric-box" title="${metricHelp.avg_duration}">
+          <div class="metric-value">${reg.avg_duration.toFixed(0)}d</div>
+          <div class="metric-label">Avg Regime Duration</div>
+        </div>
+      </div>
+
+      <!-- Regime distribution bar -->
+      <div style="margin-top:16px;">
+        <label style="font-size:12px;color:var(--text-dim);">REGIME DISTRIBUTION</label>
+        <div class="dist-bar" title="% of total days in each regime band">
+          ${renderDistBar(reg.distribution)}
+        </div>
+        <div style="display:flex;gap:16px;font-size:11px;color:var(--text-dim);margin-top:4px;flex-wrap:wrap;">
+          ${Object.entries(reg.distribution).map(([k,v]) =>
+            `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${regimeColor(k)};margin-right:4px;"></span>${k}: ${v}%</span>`
+          ).join('')}
+        </div>
+      </div>
+
+      <!-- Regime timeline -->
+      ${reg.regimes && reg.regimes.length > 0 ? `
+        <div style="margin-top:16px;">
+          <label style="font-size:12px;color:var(--text-dim);">REGIME TIMELINE (hover for dates)</label>
+          <div class="regime-timeline" role="img" aria-label="Regime timeline for ${r.ticker}">
+            ${renderRegimeTimeline(reg.regimes)}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Regime changes table -->
+      ${reg.changes && reg.changes.length > 0 ? `
+        <div style="margin-top:16px;">
+          <label style="font-size:12px;color:var(--text-dim);">REGIME CHANGES (${reg.changes.length}) — severity: delta in rolling avg consistency before/after transition</label>
+          <table class="changes-table" style="margin-top:8px;">
+            <thead>
+              <tr>
+                <th>Date</th><th>From</th><th>To</th>
+                <th title="CRITICAL>0.20 | MAJOR 0.10-0.20 | MINOR<0.10">Severity</th>
+                <th>Price</th>
+                <th title="Signed change in rolling avg consistency across transition">Delta</th>
+                <th title="Nearest pattern break within 10 days, or — if none">Nearest Break</th>
+              </tr>
+            </thead>
+            <tbody>
+            ${reg.changes.map(c => `
+              <tr>
+                <td>${c.date}</td>
+                <td style="color:${regimeColor(c.from_regime)}">${c.from_regime}</td>
+                <td style="color:${regimeColor(c.to_regime)}">${c.to_regime}</td>
+                <td class="severity-${c.severity}">${c.severity}</td>
+                <td>$${c.price_at_change.toFixed(2)}</td>
+                <td style="color:${c.delta > 0 ? 'var(--green)' : 'var(--red)'}">
+                  ${c.delta > 0 ? '+' : ''}${c.delta.toFixed(3)}
+                </td>
+                <td>${c.nearest_pattern_break || '—'}</td>
+              </tr>
+            `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+
+      <!-- Output paths — functional copy buttons -->
+      <div class="output-paths">
+        <span style="color:var(--text-dim);align-self:center;">Outputs:</span>
+        ${r.report_path ? `
+          <button class="output-path-btn" onclick="copyPath('${escPath(r.report_path)}')"
+                  title="Click to copy path to clipboard: ${escAttr(r.report_path)}">
+            📄 Report
+            <span class="path-text">${escHtml(r.report_path)}</span>
+          </button>` : ''}
+        ${r.chart_path ? `
+          <button class="output-path-btn" onclick="copyPath('${escPath(r.chart_path)}')"
+                  title="Click to copy path to clipboard: ${escAttr(r.chart_path)}">
+            📊 Chart
+            <span class="path-text">${escHtml(r.chart_path)}</span>
+          </button>` : ''}
+        <span style="color:var(--text-dim);font-size:11px;align-self:center;">
+          analysis_id: ${r.analysis_id} | ${r.duration.toFixed(2)}s | dominant: ${reg.dominant}
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+function renderComparisonTable(comparison) {
+  return `
+    <div class="result-card" role="region" aria-label="Comparison table">
+      <h3>Comparison: ${comparison.map(c => c.ticker).join(' vs ')}</h3>
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+        Sorted by causal consistency (most stable first).
+        Consistency = avg (backward + forward) / 2 across all capsules.
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th title="avg_consistency from MetricsCalculator">Consistency</th>
+            <th title="% days with |price_change| > threshold">Break Rate</th>
+            <th title="% days with consistency < low threshold">Anomaly Rate</th>
+            <th>Regime</th>
+            <th title="Total regime transitions detected">Changes</th>
+            <th title="% of time in longest single regime">Stability</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+        ${comparison.map(c => c.error ? `
+          <tr><td>${c.ticker}</td><td colspan="7" style="color:var(--red)">${c.error}</td></tr>
+        ` : `
+          <tr>
+            <td><strong>${c.ticker}</strong></td>
+            <td>${c.consistency.toFixed(3)}</td>
+            <td>${c.pattern_break_rate.toFixed(1)}%</td>
+            <td>${c.anomaly_rate.toFixed(1)}%</td>
+            <td><span style="color:${regimeColor(c.current_regime)};font-weight:600;">${c.current_regime}</span></td>
+            <td>${c.regime_changes}</td>
+            <td>${c.stability.toFixed(0)}%</td>
+            <td>${c.grade}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderDistBar(dist) {
+  return Object.entries(dist).map(([k, v]) =>
+    `<div class="dist-segment" style="width:${v}%;background:${regimeColor(k)};" title="${k}: ${v}%"></div>`
+  ).join('');
+}
+
+function renderRegimeTimeline(regimes) {
+  const totalDays = regimes.reduce((s, r) => s + r.duration_days, 0);
+  return regimes.map(r => {
+    const pct = (r.duration_days / totalDays * 100).toFixed(1);
+    return `<div class="regime-segment ${r.regime_type}" style="width:${pct}%;"
+      title="${r.regime_type}: ${r.start_date} — ${r.end_date} (${r.duration_days}d, consistency ${r.avg_consistency.toFixed(3)})"
+      aria-label="${r.regime_type} regime from ${r.start_date} to ${r.end_date}"
+    >${parseFloat(pct) > 8 ? r.regime_type.charAt(0) : ''}</div>`;
+  }).join('');
+}
+
+function regimeColor(regime) {
+  const colors = {
+    ORDERED:  '#06A77D',
+    MODERATE: '#F77F00',
+    VOLATILE: '#D62828',
+    CHAOTIC:  '#4A0E4E'
+  };
+  return colors[regime] || '#8b949e';
+}
+
+// ============================================================
+// Utility
+// ============================================================
+function setStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+
+function copyPath(path) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(path).then(() => showToast('Path copied: ' + path));
+  } else {
+    // Fallback for non-https
+    const el = document.createElement('textarea');
+    el.value = path;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('Path copied: ' + path);
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// Escape helpers to prevent XSS in interpolated HTML/attributes
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escPath(s) {
+  // For use inside onclick string — escape backslashes and single quotes
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+</script>
+</body>
+</html>

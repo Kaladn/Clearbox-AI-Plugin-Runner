@@ -559,16 +559,15 @@ def ingest_text(
         except Exception as e:
             logger.warning("BM25 index update failed (run /reindex manually): %s", e)
 
-        # Dense (if available — graceful skip if deps missing)
+        # Census (6-1-6 adjacency co-occurrence index)
         try:
-            from lakespeak.index.dense import DenseIndex
-            if DenseIndex.is_available():
-                dense = DenseIndex()
-                dense.add_chunks(chunk_texts_list, chunk_ids_list, receipt_ids_list)
-                dense.save()
-                logger.info("Dense index updated with %d new chunks", len(chunks))
+            from lakespeak.index.census import CensusIndex
+            census = CensusIndex()
+            census.add_chunks(chunk_texts_list, chunk_ids_list, receipt_ids_list)
+            census.save()
+            logger.info("Census index updated with %d new chunks", len(chunks))
         except Exception as e:
-            logger.warning("Dense index update skipped: %s", e)
+            logger.warning("Census index update skipped: %s", e)
 
     return asdict(receipt)
 

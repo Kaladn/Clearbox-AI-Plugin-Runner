@@ -3,7 +3,7 @@
 Pipeline:
   1. Tokenize query -> extract lexicon presence/absence
   2. BM25 sparse retrieval
-  3. (Optional) Dense retrieval + hybrid merge
+  3. Census retrieval (6-1-6 adjacency) + hybrid merge
   4. 6-1-6 anchor reranking
   5. Quality Gate -> verdict
   6. Grounding Policy -> decision
@@ -86,7 +86,7 @@ class LakeSpeakEngine:
 
         self._config = config
         self._bm25 = None      # Lazy: BM25Index
-        self._dense = None      # Lazy: DenseIndex (optional)
+        self._census = None     # Lazy: CensusIndex (6-1-6 adjacency)
         self._bridge = None     # Lazy: ForestLexiconBridge
         self._bridge_loaded = False
         self._training_logger = None  # Lazy: cached TrainingEventLogger
@@ -100,16 +100,15 @@ class LakeSpeakEngine:
             self._bm25 = BM25Index()
         return self._bm25
 
-    def _ensure_dense(self):
-        """Lazy-load dense index (optional, graceful degradation)."""
-        if self._dense is None and self._config.get("dense_enabled", True):
+    def _ensure_census(self):
+        """Lazy-load census index (6-1-6 adjacency co-occurrence)."""
+        if self._census is None:
             try:
-                from lakespeak.index.dense import DenseIndex
-                if DenseIndex.is_available():
-                    self._dense = DenseIndex()
+                from lakespeak.index.census import CensusIndex
+                self._census = CensusIndex()
             except ImportError:
                 pass
-        return self._dense
+        return self._census
 
     def _ensure_bridge(self):
         """Lazy-load Forest lexicon bridge (best-effort)."""
@@ -220,7 +219,7 @@ class LakeSpeakEngine:
         so every citation is fully traceable.
 
         Output is deterministically sorted: score DESC, bm25 DESC,
-        dense DESC, receipt_id ASC, chunk_id ASC.
+        census DESC, receipt_id ASC, chunk_id ASC.
         """
         citations = []
         for sc in scored_chunks:
@@ -238,7 +237,7 @@ class LakeSpeakEngine:
                 "receipt_id": sc.receipt_id,
                 "score": round(sc.score, 6),
                 "bm25_score": round(sc.bm25_score, 6),
-                "dense_score": round(sc.dense_score, 6),
+                "census_score": round(sc.census_score, 6),
                 "anchor_score": round(sc.anchor_score, 6),
                 "text": full_text,
                 "snippet": snippet,
@@ -272,7 +271,7 @@ class LakeSpeakEngine:
         citations.sort(key=lambda c: (
             -float(c.get("score", 0.0)),
             -float(c.get("bm25_score", 0.0)),
-            -float(c.get("dense_score", 0.0)),
+            -float(c.get("census_score", 0.0)),
             str(c.get("receipt_id", "")),
             str(c.get("chunk_id", "")),
         ))
@@ -460,31 +459,31 @@ class LakeSpeakEngine:
         bm25_topk = self._config.get("bm25_topk", 20)
         bm25_results = bm25_index.query(query, topk=bm25_topk)
 
-        # 3. Dense retrieval + hybrid merge (if available)
-        dense_index = self._ensure_dense()
-        dense_results: List[ScoredChunk] = []
-        if dense_index is not None:
+        # 3. Census retrieval (6-1-6 adjacency) + hybrid merge
+        census_index = self._ensure_census()
+        census_results: List[ScoredChunk] = []
+        if census_index is not None:
             try:
-                dense_topk = self._config.get("dense_topk", 20)
-                dense_results = dense_index.query(query, topk=dense_topk)
+                census_topk = self._config.get("census_topk", 20)
+                census_results = census_index.query(query, topk=census_topk)
             except Exception as e:
-                logger.warning("Dense retrieval failed, falling back to BM25-only: %s", e)
+                logger.warning("Census retrieval failed, falling back to BM25-only: %s", e)
 
-        if dense_results:
+        if census_results:
             from lakespeak.index.hybrid import rrf_merge
             bm25_weight = self._config.get("bm25_weight", 0.4)
-            dense_weight = self._config.get("dense_weight", 0.6)
+            census_weight = self._config.get("census_weight", 0.6)
             candidates = rrf_merge(
-                bm25_results, dense_results,
+                bm25_results, census_results,
                 bm25_weight=bm25_weight,
-                dense_weight=dense_weight,
+                census_weight=census_weight,
             )
         else:
             candidates = bm25_results
 
         tb.set_retrieval(
             bm25=len(bm25_results),
-            dense=len(dense_results),
+            census=len(census_results),
             hybrid=len(candidates),
         )
         tb.mark_retrieval_done()
@@ -598,7 +597,7 @@ class LakeSpeakEngine:
             lexicon_present=lexicon_present,
             lexicon_absent=lexicon_absent,
             bm25_results=bm25_results,
-            dense_results=dense_results,
+            census_results=census_results,
             final_results=final_results,
             anchor_rerank_applied=anchor_rerank_applied,
             query_anchors=query_anchors,
@@ -641,7 +640,7 @@ class LakeSpeakEngine:
         lexicon_present: List[str],
         lexicon_absent: List[str],
         bm25_results: List[ScoredChunk],
-        dense_results: List[ScoredChunk],
+        census_results: List[ScoredChunk],
         final_results: List[ScoredChunk],
         anchor_rerank_applied: bool,
         query_anchors: set,
@@ -717,9 +716,8 @@ class LakeSpeakEngine:
                 retrieval_ms=trace.retrieval_ms,
                 bm25_enabled=True,
                 bm25_hits=len(bm25_results),
-                dense_enabled=bool(dense_results),
-                dense_hits=len(dense_results),
-                dense_model=self._config.get("dense_model") if dense_results else None,
+                census_enabled=bool(census_results),
+                census_hits=len(census_results),
                 candidates=candidate_records,
                 evidence_set_hash=ev_hash,
                 # Rerank
@@ -789,25 +787,24 @@ class LakeSpeakEngine:
         bm25.build(texts, ids, receipt_ids)
         bm25.save()
 
-        # Rebuild dense index (if available)
-        dense_count = 0
+        # Rebuild census index (6-1-6 adjacency)
+        census_count = 0
         try:
-            from lakespeak.index.dense import DenseIndex
-            if DenseIndex.is_available():
-                dense = DenseIndex()
-                dense.build(texts, ids, receipt_ids)
-                dense.save()
-                dense_count = dense.doc_count
-                self._dense = dense  # Update cached reference
-                logger.info("Dense index rebuilt: %d vectors", dense_count)
+            from lakespeak.index.census import CensusIndex
+            census = CensusIndex()
+            census.build(texts, ids, receipt_ids)
+            census.save()
+            census_count = census.doc_count
+            self._census = census  # Update cached reference
+            logger.info("Census index rebuilt: %d chunks", census_count)
         except Exception as e:
-            logger.warning("Dense index rebuild skipped: %s", e)
+            logger.warning("Census index rebuild skipped: %s", e)
 
         # Log reindex event
         stats = {
             "chunks_indexed": len(texts),
             "receipts_processed": receipts_processed,
-            "dense_indexed": dense_count,
+            "census_indexed": census_count,
         }
         try:
             if self._training_logger is None:

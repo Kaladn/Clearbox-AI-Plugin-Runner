@@ -1,0 +1,11 @@
+{
+  "display_name": "A/V Security",
+  "description": "Audio-visual correlation and forensic security analysis. Detects phantom audio, silent visuals, delayed AV correlation (>70ms), and directional mismatch. Consumes events from visual_io and audio_io.",
+  "mount_prefix": "/api/av_security",
+  "type": "router",
+  "requires": ["visual_io", "audio_io"],
+  "config_section": "av_security",
+  "entry": "api.router",
+  "routes_var": "router",
+  "version": "0.1.0"
+}

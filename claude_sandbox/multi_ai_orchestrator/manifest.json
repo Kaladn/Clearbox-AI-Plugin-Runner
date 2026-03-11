@@ -1,0 +1,15 @@
+{
+  "display_name": "Multi-AI Orchestrator",
+  "description": "Hub/chain conversation panel. Up to 10 human or LLM nodes. Zero direct company calls. Full-fidelity append-only session storage. Uses whatever AI extension the user has installed.",
+  "mount_prefix": "/api/multi_ai",
+  "type": "router",
+  "requires": [],
+  "config_section": "multi_ai",
+  "ui_panel": "ui/multi_ai_panel.html",
+  "entry": "api/multi_ai_api.py",
+  "routes_var": "ROUTES",
+  "standalone": true,
+  "vscode_extension": true,
+  "vscode_entry": "extension.js",
+  "version": "1.0.0"
+}

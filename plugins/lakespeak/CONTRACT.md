@@ -110,14 +110,13 @@ The intake gate validates format and stores the citation record.
 ```json
 {
   "lakespeak": {
-    "enabled": true,
-    "dense_enabled": true
+    "enabled": true
   }
 }
 ```
 
 - `enabled: false` — Plugin returns empty results, base unaffected
-- `dense_enabled: false` — Sparse-only mode (BM25 only)
+- Retrieval: BM25 (0.40) + census/6-1-6 adjacency (0.60) — no embeddings, no models
 
 Future:
 - `LAKESPEAK_TRAINING_ENABLED` — Plugin #3 can be off forever without impact
@@ -165,8 +164,8 @@ lakespeak/
 
   index/
     bm25.py                           BM25 sparse index
-    dense.py                          Dense embeddings (optional)
-    hybrid.py                         RRF merge
+    census.py                         6-1-6 adjacency co-occurrence index
+    hybrid.py                         RRF merge (BM25 + census)
     anchor_reranker.py                6-1-6 anchor reranking
 
   retrieval/

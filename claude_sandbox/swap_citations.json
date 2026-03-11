@@ -1,0 +1,217 @@
+{
+  "meta": {
+    "project": "Clearbox AI Studio v2",
+    "created": "2026-03-11",
+    "purpose": "Structured change tracking across swap files. Each citation is a decision, build, or design event. Supersedes chains track when decisions evolve. Tags enable filtering by subsystem. This file is LakeSpeak-ingestible.",
+    "schema_version": "1.0"
+  },
+
+  "files": {
+    "!CLAUDE_SWAP.md": {
+      "role": "archive",
+      "frozen": true,
+      "covers": "pre-March 2026",
+      "note": "Full history to Jan 2026. Read-only reference."
+    },
+    "!CLAUDE_SWAP_2.md": {
+      "role": "specs",
+      "frozen": false,
+      "covers": "March 2026 — specs, designs, pseudocode",
+      "note": "Contains GlueEngine spec, FormatDetector spec, Market Oracle docs, open contracts, drift audit. Reference for implementation details."
+    },
+    "!CLAUDE_SWAP_3.md": {
+      "role": "active_state",
+      "frozen": false,
+      "covers": "current — what matters NOW",
+      "note": "Clean active state. Links to SWAP_2 for spec details via citation IDs. No duplicated specs."
+    }
+  },
+
+  "citations": [
+    {
+      "id": "CIT-001",
+      "date": "2026-03-10",
+      "who": "CLAUDE_A",
+      "what": "CRSA-616 full blueprint written",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "WHAT'S DONE",
+      "detail_file": "CRSA-616_FULL_REBUILD_BLUEPRINT.md",
+      "tags": ["crsa-616", "blueprint", "design"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-002",
+      "date": "2026-03-10",
+      "who": "CLAUDE_C",
+      "what": "SensoryStack built (Layer 1, 4 plugins)",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "WHAT'S DONE",
+      "tags": ["crsa-616", "sensory_stack", "build"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-003",
+      "date": "2026-03-11",
+      "who": "CLAUDE_C",
+      "what": "GlueEngine designed — 8 grammar rules, context rings, coherence mapper, bridge weaver, answer skeleton, safety valve",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "SPEC 2: GLUE ENGINE",
+      "tags": ["lakespeak", "glue_engine", "design"],
+      "supersedes": null,
+      "status": "superseded",
+      "superseded_by": "CIT-006"
+    },
+    {
+      "id": "CIT-004",
+      "date": "2026-03-11",
+      "who": "CLAUDE_C",
+      "what": "FormatDetector designed — signal analysis, 7 adapters, safety crutch, density-to-N auto-tuning",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "SPEC 1: FORMAT DETECTOR",
+      "tags": ["lakespeak", "format_detector", "design"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-005",
+      "date": "2026-03-11",
+      "who": "CLAUDE_A",
+      "what": "Market Oracle built — 15 files, regime detection, SQLite storage, UI panel",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "WHAT'S DONE",
+      "detail_file": "plugins/market_oracle/",
+      "tags": ["market_oracle", "build", "financial"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-006",
+      "date": "2026-03-11",
+      "who": "CLAUDE_A",
+      "what": "GlueEngine spec merged — Claude C architecture + Claude A temporal reasoning, 10 rules",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "SPEC 2: GLUE ENGINE",
+      "tags": ["lakespeak", "glue_engine", "design", "temporal"],
+      "supersedes": "CIT-003",
+      "status": "superseded",
+      "superseded_by": "CIT-007"
+    },
+    {
+      "id": "CIT-007",
+      "date": "2026-03-11",
+      "who": "CLAUDE_A",
+      "what": "5 open contracts incorporated — labels renamed to directional, IDF de-weighting, cycle breaking",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "OPEN CONTRACTS",
+      "tags": ["lakespeak", "glue_engine", "contracts", "directional"],
+      "supersedes": "CIT-006",
+      "status": "active",
+      "note": "Current GlueEngine spec state. Labels: UPSTREAM/PRIMARY/ADJACENT/DOWNSTREAM. Causal labels optional promotion."
+    },
+    {
+      "id": "CIT-008",
+      "date": "2026-03-11",
+      "who": "CLAUDE_C",
+      "what": "LAKESPEAK_NO_LLM declared absolute — zero model calls in LakeSpeak, ingest or query",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "REGIME FLAGS",
+      "tags": ["lakespeak", "regime", "critical"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-009",
+      "date": "2026-03-11",
+      "who": "CLAUDE_C",
+      "what": "LAKESPEAK_TWO_SPEC_SEPARATION — FormatDetector and GlueEngine are independent builds",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "REGIME FLAGS",
+      "tags": ["lakespeak", "regime", "architecture"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-010",
+      "date": "2026-03-11",
+      "who": "CLAUDE_C",
+      "what": "Temporal Promotion Contracts v2 — gradient model",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "WHAT'S DONE",
+      "detail_file": "TEMPORAL_PROMOTION_CONTRACTS.md",
+      "tags": ["crsa-616", "temporal", "contracts"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-011",
+      "date": "2026-03-11",
+      "who": "LEE",
+      "what": "Market Oracle: HYBRID — both Clearbox plugin AND standalone separate system",
+      "source_file": "!CLAUDE_SWAP_3.md",
+      "source_section": "WHAT'S DONE",
+      "tags": ["market_oracle", "architecture", "correction"],
+      "supersedes": null,
+      "status": "active",
+      "note": "Drift #5 resolved. Market Oracle runs inside Clearbox via plugin runner BUT does not depend on Clearbox to function. Listed in BOTH plugin list AND [SEPARATE]. No rebuild needed — existing 15-file structure already supports this."
+    },
+    {
+      "id": "CIT-012",
+      "date": "2026-03-11",
+      "who": "LEE",
+      "what": "Swap file is LakeSpeak-ingestible system knowledge (SWAP_AS_CORPUS)",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "SWAP FILE AS LAKESPEAK CORPUS",
+      "tags": ["lakespeak", "self_reference", "architecture"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-013",
+      "date": "2026-03-11",
+      "who": "CLAUDE_A",
+      "what": "Drift audit — 7 drifts found, 4 fixed, 2 need Lee",
+      "source_file": "!CLAUDE_SWAP_2.md",
+      "source_section": "DRIFT AUDIT",
+      "tags": ["maintenance", "drift", "quality"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-014",
+      "date": "2026-03-11",
+      "who": "CLAUDE_A",
+      "what": "Swap file evolution — SWAP_3 created as active state, SWAP_2 becomes specs reference",
+      "source_file": "!CLAUDE_SWAP_3.md",
+      "source_section": "header",
+      "tags": ["process", "swap_files", "architecture"],
+      "supersedes": null,
+      "status": "active"
+    },
+    {
+      "id": "CIT-015",
+      "date": "2026-03-11",
+      "who": "LEE",
+      "what": "Drift #5 RESOLVED — Market Oracle = Hybrid. Plugin inside Clearbox AND standalone. Both lists.",
+      "source_file": "!CLAUDE_SWAP_3.md",
+      "source_section": "WHAT'S DONE",
+      "tags": ["market_oracle", "architecture", "drift_resolved"],
+      "supersedes": "CIT-011",
+      "status": "active",
+      "note": "No code change needed. plugin/market_oracle/ structure already clean. Mounts via Clearbox plugin runner, also works standalone. Add to [SEPARATE] list with note: also available as Clearbox plugin."
+    },
+    {
+      "id": "CIT-016",
+      "date": "2026-03-11",
+      "who": "LEE",
+      "what": "Drift #7 RESOLVED — census_score IS the ingest co-occurrence counts. BM25 0.40 / census 0.60 CONFIRMED.",
+      "source_file": "!CLAUDE_SWAP_3.md",
+      "source_section": "KEY ARCHITECTURE",
+      "tags": ["lakespeak", "census_score", "weights", "drift_resolved"],
+      "supersedes": null,
+      "status": "active",
+      "note": "Census = adjacency co-occurrence counts built during lexicon mapping/ingest. Replaces dense (embedding similarity). census_score expands query tokens through the adjacency map and scores chunks by intersection. The 0.60 weight is earned — census knows positions AND semantic proximity. Dense only knew proximity. BM25 0.40 / census 0.60 is the confirmed weighting. Not tunable for now — this is the settled architecture."
+    }
+  ]
+}

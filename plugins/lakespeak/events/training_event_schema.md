@@ -74,10 +74,9 @@ Hash algorithm: SHA-256 hex, prefixed with `sha256:`.
       "enabled": true,
       "hits": 8
     },
-    "dense": {
+    "census": {
       "enabled": false,
-      "hits": 0,
-      "embed_model": null
+      "hits": 0
     },
 
     "candidates": [

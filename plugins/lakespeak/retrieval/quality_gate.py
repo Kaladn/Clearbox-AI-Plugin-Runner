@@ -12,9 +12,9 @@ Acceptable Contract v3:
     3. Integrity gate: no hallucinated file access claims
     4. Policy gate: no leakage of protected data
     5. Retrieval confidence gate: multi-signal analysis of raw scores
-       - dual_ratio: fraction of top-k with BOTH bm25>0 AND dense>0
+       - dual_ratio: fraction of top-k with BOTH bm25>0 AND census>0
        - spread: score range in top-k (clear standout vs diffuse)
-       - max_dense: best raw dense cosine similarity
+       - max_census: best raw census adjacency score
        Tiers: HIGH (acceptable), MEDIUM (tentative), LOW (trash)
     6. Answer-type presence gate: if the query expects a specific type
        (year, age, city, name), the evidence must contain that type
@@ -221,39 +221,39 @@ def _compute_confidence_tier(
     Returns (tier, signals_dict) where tier is "high"|"medium"|"low".
 
     Signal analysis:
-      dual_ratio:  fraction of top-k with BOTH bm25>0 AND dense>0.
+      dual_ratio:  fraction of top-k with BOTH bm25>0 AND census>0.
                    High = both retrieval methods agree on the same chunks.
       spread:      best_reranked - worst_reranked in top-k.
                    High = a clear standout answer. Low = diffuse/flat.
-      max_dense:   best raw dense cosine similarity among top-k.
+      max_census:  best raw census score (6-1-6 adjacency) among top-k.
 
     Tier rules:
       HIGH:   dual_ratio >= 0.6 AND spread >= 0.10
               Both signals agree AND a clear winner exists.
       MEDIUM: (dual_ratio >= 0.6 AND spread < 0.10)
-              OR (dual_ratio == 0 AND max_dense >= 0.35)
-              Partial agreement, or plausible pure-semantic match.
+              OR (dual_ratio == 0 AND max_census >= 0.35)
+              Partial agreement, or plausible pure-adjacency match.
       LOW:    0 < dual_ratio < 0.6
               Partial keyword match only — e.g. entity name matches
               but the question-specific terms don't appear in chunks.
-              OR: max_dense < 0.35 with no BM25 signal.
+              OR: max_census < 0.35 with no BM25 signal.
     """
     if not retrieval_hits:
-        return "low", {"dual_ratio": 0, "spread": 0, "max_dense": 0,
+        return "low", {"dual_ratio": 0, "spread": 0, "max_census": 0,
                         "dual_count": 0, "hit_count": 0}
 
-    max_dense = max((h.dense_score for h in retrieval_hits), default=0.0)
+    max_census = max((h.census_score for h in retrieval_hits), default=0.0)
     scores = [h.score for h in retrieval_hits]
     spread = max(scores) - min(scores) if len(scores) > 1 else 0.0
 
     dual_count = sum(
         1 for h in retrieval_hits
-        if h.bm25_score > 0 and h.dense_score > 0
+        if h.bm25_score > 0 and h.census_score > 0
     )
     dual_ratio = dual_count / len(retrieval_hits)
 
     signals = {
-        "max_dense": round(max_dense, 4),
+        "max_census": round(max_census, 4),
         "dual_ratio": round(dual_ratio, 4),
         "dual_count": dual_count,
         "spread": round(spread, 4),
@@ -262,9 +262,9 @@ def _compute_confidence_tier(
 
     # Additional signals
     bm25_active = any(h.bm25_score > 0 for h in retrieval_hits)
-    dense_active = any(h.dense_score > 0 for h in retrieval_hits)
+    census_active = any(h.census_score > 0 for h in retrieval_hits)
     signals["bm25_active"] = bm25_active
-    signals["dense_active"] = dense_active
+    signals["census_active"] = census_active
 
     # 6-1-6 anchor signal: if anchor reranking boosted any chunks,
     # that's a third retrieval signal (lexicon-grounded overlap).
@@ -280,7 +280,7 @@ def _compute_confidence_tier(
     if anchor_ratio >= 0.5 and max_anchor >= 0.3 and spread >= 0.05:
         return "high", signals
 
-    # HIGH: strong bm25+dense agreement AND clear standout
+    # HIGH: strong bm25+census agreement AND clear standout
     if dual_ratio >= 0.6 and spread >= 0.07:
         return "high", signals
 
@@ -288,7 +288,7 @@ def _compute_confidence_tier(
     if anchor_ratio >= 0.3 and max_anchor >= 0.2:
         return "medium", signals
 
-    # MEDIUM: strong bm25+dense agreement but flat scores
+    # MEDIUM: strong bm25+census agreement but flat scores
     if dual_ratio >= 0.6:
         return "medium", signals
 
@@ -300,17 +300,17 @@ def _compute_confidence_tier(
     if anchor_count >= 1 and max_anchor >= 0.1:
         return "medium", signals
 
-    # LOW: total disagreement — BM25 and dense both fired but on
+    # LOW: total disagreement — BM25 and census both fired but on
     # DIFFERENT chunks with no anchor confirmation.
-    if dual_ratio == 0.0 and bm25_active and dense_active and anchor_count == 0:
+    if dual_ratio == 0.0 and bm25_active and census_active and anchor_count == 0:
         return "low", signals
 
     # LOW: very weak agreement (dual < 0.3) and no anchor backup
     if 0 < dual_ratio < 0.3 and anchor_count == 0:
         return "low", signals
 
-    # MEDIUM: pure semantic (no BM25 at all) with decent dense cosine
-    if dual_ratio == 0.0 and max_dense >= 0.35:
+    # MEDIUM: pure census (no BM25 at all) with decent adjacency score
+    if dual_ratio == 0.0 and max_census >= 0.35:
         return "medium", signals
 
     # MEDIUM: any non-zero anchor (conservative — at least the lexicon sees overlap)

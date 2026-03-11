@@ -1,0 +1,110 @@
+{
+  "name": "clearbox-multi-ai",
+  "displayName": "Clearbox Multi-AI Orchestrator",
+  "description": "Hub/chain conversation panel. Up to 10 human or LLM nodes. Zero direct company calls. Full-fidelity session storage. Uses whatever AI extension you have installed.",
+  "version": "1.0.0",
+  "publisher": "ShadowWolf",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["AI", "Other"],
+  "activationEvents": [
+    "onCommand:clearbox.multiAi.open"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "clearbox.multiAi.open",
+        "title": "Multi-AI: Open Orchestrator Panel"
+      },
+      {
+        "command": "clearbox.multiAi.addNode",
+        "title": "Multi-AI: Add Node"
+      },
+      {
+        "command": "clearbox.multiAi.exportSession",
+        "title": "Multi-AI: Export Current Session"
+      },
+      {
+        "command": "clearbox.multiAi.listSessions",
+        "title": "Multi-AI: List Saved Sessions"
+      },
+      {
+        "command": "clearbox.multiAi.newSession",
+        "title": "Multi-AI: New Session"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "clearbox.multiAi.open",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      }
+    ],
+    "configuration": {
+      "title": "Clearbox Multi-AI Orchestrator",
+      "properties": {
+        "clearboxMultiAi.knownExtensions": {
+          "type": "array",
+          "default": [],
+          "description": "AI extensions to probe for exported chat APIs. Each entry: { \"id\": \"extension.id\", \"method\": \"exportedMethodName\", \"label\": \"Display Name\" }.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id":     { "type": "string", "description": "VSCode extension ID (e.g. continue.continue)" },
+              "method": { "type": "string", "description": "Exported method name on the extension's exports object" },
+              "label":  { "type": "string", "description": "Display name shown in provider dropdown" }
+            },
+            "required": ["id", "method"]
+          }
+        },
+        "clearboxMultiAi.localEndpoints": {
+          "type": "array",
+          "default": [],
+          "description": "Local LLM endpoints (localhost/LAN only). Each entry: { \"url\": \"http://localhost:11434/v1/chat/completions\", \"model\": \"qwen2.5:7b\", \"label\": \"Ollama\" }.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url":   { "type": "string", "description": "Must be localhost or LAN address" },
+              "model": { "type": "string", "description": "Model name to pass in request body" },
+              "label": { "type": "string", "description": "Display name shown in provider dropdown" }
+            },
+            "required": ["url", "model"]
+          }
+        },
+        "clearboxMultiAi.defaultChainMode": {
+          "type": "string",
+          "enum": ["AUTO", "PREVIEW_FIRST"],
+          "default": "PREVIEW_FIRST",
+          "description": "Whether chain handoffs fire automatically or pause for Lee to confirm. HUMAN nodes always pause regardless."
+        },
+        "clearboxMultiAi.maxNodes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of simultaneous nodes."
+        },
+        "clearboxMultiAi.sessionStoragePath": {
+          "type": "string",
+          "default": "",
+          "description": "Override session storage path. Leave empty to use default: ~/.clearbox/multi_ai/sessions/"
+        },
+        "clearboxMultiAi.defaultNodes": {
+          "type": "array",
+          "default": [
+            { "label": "Strategist", "role": "STRATEGIST", "slot_type": "LLM" },
+            { "label": "Executor",   "role": "EXECUTOR",   "slot_type": "LLM" },
+            { "label": "Coder",      "role": "CODER",       "slot_type": "LLM" },
+            { "label": "Validator",  "role": "VALIDATOR",   "slot_type": "LLM" }
+          ],
+          "description": "Default nodes created when opening a new panel. Set to [] for blank panel."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "uuid": "^9.0.0"
+  }
+}

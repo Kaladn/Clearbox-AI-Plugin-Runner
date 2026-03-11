@@ -63,8 +63,8 @@ class LakeSpeakStatusResponse(BaseModel):
     version: str = ""
     enabled: bool = False
     bm25_doc_count: int = 0
-    dense_available: bool = False
-    dense_doc_count: int = 0
+    census_available: bool = False
+    census_doc_count: int = 0
     config: Dict[str, Any] = {}
     error: Optional[Dict[str, Any]] = None
 

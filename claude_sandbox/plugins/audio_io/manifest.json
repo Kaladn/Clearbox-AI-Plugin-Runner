@@ -1,0 +1,11 @@
+{
+  "display_name": "Audio I/O",
+  "description": "Live mic/speaker capture worker. MFCC fingerprinting, onset detection, ILD stereo direction analysis. Lee's own audio tech — no external ML models.",
+  "mount_prefix": "/api/audio_io",
+  "type": "router",
+  "requires": ["numpy", "sounddevice", "librosa"],
+  "config_section": "audio_io",
+  "entry": "api.router",
+  "routes_var": "router",
+  "version": "0.1.0"
+}
