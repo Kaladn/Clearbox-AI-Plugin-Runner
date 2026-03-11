@@ -1,0 +1,21 @@
+{
+  "name": "reach",
+  "version": "0.1.0",
+  "description": "Channel gateway — control your Clearbox workbench from anywhere",
+  "entry": "reach",
+  "routes_var": "router",
+  "requires": [],
+  "regime_flags": [],
+  "capabilities": [
+    "channel_routing",
+    "message_audit",
+    "pairing_security",
+    "multi_channel_gateway"
+  ],
+  "channels_supported": [
+    "discord",
+    "telegram",
+    "webhook",
+    "websocket"
+  ]
+}
