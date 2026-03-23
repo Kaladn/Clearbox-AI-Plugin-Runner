@@ -27,8 +27,9 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,6 +63,9 @@ class PluginManifest:
     error: str | None = None
     health: str = "unknown"         # ok | down | unknown | unmounted
     endpoints: list[dict] = field(default_factory=list)
+    # UI
+    ui_file: str = ""               # relative path to plugin UI HTML file
+    ui_static_dir: str = ""         # relative path to static assets dir (if any)
     # Promotion checklist
     promotion: dict = field(default_factory=dict)
 
@@ -103,6 +107,29 @@ def build_manifest(pid: str, plugin_dir: Path, repo_root: Path) -> PluginManifes
             has_hooks = True
             break
 
+    # Detect plugin UI
+    ui_file = ""
+    ui_static_dir = ""
+    ui_candidates = [
+        plugin_dir / "_preview_ui.html",
+        plugin_dir / "ui.html",
+        plugin_dir / "ui" / "index.html",
+        plugin_dir / "dashboard" / "templates" / "index.html",
+    ]
+    for uf in ui_candidates:
+        if uf.exists():
+            ui_file = str(uf.relative_to(plugin_dir))
+            break
+    # Check for static assets dir alongside the UI
+    for static_candidate in [
+        plugin_dir / "dashboard" / "static",
+        plugin_dir / "static",
+        plugin_dir / "ui" / "static",
+    ]:
+        if static_candidate.is_dir():
+            ui_static_dir = str(static_candidate.relative_to(plugin_dir))
+            break
+
     return PluginManifest(
         id=pid,
         version=version,
@@ -116,6 +143,8 @@ def build_manifest(pid: str, plugin_dir: Path, repo_root: Path) -> PluginManifes
         requires=mf_data.get("requires", []),
         config_section=mf_data.get("config_section", ""),
         data_dirs=mf_data.get("data_dirs", []),
+        ui_file=ui_file,
+        ui_static_dir=ui_static_dir,
     )
 
 
@@ -486,6 +515,88 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def serve_ui():
     return FileResponse(Path(__file__).parent / "plugin_runner_ui.html", media_type="text/html")
+
+
+# ── Plugin UI serving ──
+
+def _find_plugin_dir(plugin_id: str) -> Path | None:
+    """Locate the directory for a given plugin id across all scan dirs."""
+    for sd in _scan_dirs:
+        candidate = sd / plugin_id
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+@app.get("/plugin-ui/{plugin_id}", include_in_schema=False)
+async def serve_plugin_ui(plugin_id: str):
+    """Serve a plugin's own UI HTML, rewriting API paths for the runner context."""
+    m = next((p for p in _plugins if p.id == plugin_id), None)
+    if not m or not m.ui_file:
+        return JSONResponse({"error": "no UI for this plugin"}, 404)
+
+    pdir = _find_plugin_dir(plugin_id)
+    if not pdir:
+        return JSONResponse({"error": "plugin dir not found"}, 404)
+
+    ui_path = pdir / m.ui_file
+    if not ui_path.exists():
+        return JSONResponse({"error": "UI file not found"}, 404)
+
+    html = ui_path.read_text(encoding="utf-8")
+
+    # Rewrite asset paths: /static/... → /plugin-static/{plugin_id}/...
+    if m.ui_static_dir:
+        html = html.replace('href="/static/', f'href="/plugin-static/{plugin_id}/')
+        html = html.replace('src="/static/', f'src="/plugin-static/{plugin_id}/')
+
+    # Rewrite bare API calls so they route through the plugin runner's mount path.
+    # e.g. wolf_engine dashboard calls fetch('/api/analyze') but the runner
+    # mounts it at /api/wolf/analyze.
+    if m.mounted and m.mount_path:
+        rewrite_script = (
+            f'<script>'
+            f'(function(){{'
+            f'const _origFetch=window.fetch;'
+            f'window.fetch=function(url,opts){{'
+            f'if(typeof url==="string"&&url.startsWith("/api/")&&!url.startsWith("{m.mount_path}"))'
+            f'{{url="{m.mount_path}"+url.slice(4);}}'
+            f'return _origFetch.call(this,url,opts);'
+            f'}};'
+            f'}})();'
+            f'</script>'
+        )
+        # Inject right after <head> or at the top
+        if '<head>' in html:
+            html = html.replace('<head>', '<head>' + rewrite_script, 1)
+        else:
+            html = rewrite_script + html
+
+    return HTMLResponse(html)
+
+
+@app.get("/plugin-static/{plugin_id}/{path:path}", include_in_schema=False)
+async def serve_plugin_static(plugin_id: str, path: str):
+    """Serve static assets (CSS/JS/images) from a plugin's static directory."""
+    m = next((p for p in _plugins if p.id == plugin_id), None)
+    if not m or not m.ui_static_dir:
+        return JSONResponse({"error": "no static dir"}, 404)
+
+    pdir = _find_plugin_dir(plugin_id)
+    if not pdir:
+        return JSONResponse({"error": "plugin dir not found"}, 404)
+
+    file_path = pdir / m.ui_static_dir / path
+    if not file_path.exists() or not file_path.is_file():
+        return JSONResponse({"error": "file not found"}, 404)
+
+    # Security: ensure the resolved path is within the plugin directory
+    try:
+        file_path.resolve().relative_to(pdir.resolve())
+    except ValueError:
+        return JSONResponse({"error": "forbidden"}, 403)
+
+    return FileResponse(file_path)
 
 
 # ── Runner API ──

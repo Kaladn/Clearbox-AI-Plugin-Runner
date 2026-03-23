@@ -182,6 +182,8 @@ body {
 .dtab.active { color: var(--success); border-bottom-color: var(--highlight); }
 .dpanel { display: none; }
 .dpanel.active { display: block; }
+.dpanel-ui.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.plugin-iframe { flex: 1; border: none; border-radius: 6px; background: var(--primary-bg); min-height: 600px; }
 
 /* ── Endpoint list ── */
 .ep-list { list-style: none; }
@@ -374,7 +376,7 @@ async function renderSidebar() {
         const item = document.createElement('div');
         item.className = 'sb-item' + (p.id === _selectedId ? ' active' : '') + (!p.mounted ? ' unmounted' : '');
         item.innerHTML = `<span class="sb-dot ${p._health||'unknown'}"></span><span class="sb-name">${esc(p.display_name||p.id)}</span><span class="sb-ver">v${esc(p.version)}</span>`;
-        if (p.mounted) item.onclick = () => { _selectedId = p.id; _activeTab = 'endpoints'; renderSidebar(); renderDetail(p); };
+        if (p.mounted) item.onclick = () => { _selectedId = p.id; _activeTab = p.ui_file ? 'ui' : 'endpoints'; renderSidebar(); renderDetail(p); };
         else item.onclick = () => { _selectedId = p.id; _activeTab = 'manifest'; renderSidebar(); renderDetail(p); };
         el.appendChild(item);
     }
@@ -407,11 +409,17 @@ function renderDetail(p) {
         </div>
 
         <div class="dtabs">
+            ${p.ui_file ? `<div class="dtab ${_activeTab==='ui'?'active':''}" onclick="switchDTab('ui','${p.id}')" style="color:var(--gpt-oss);">&#9655; UI</div>` : ''}
             <div class="dtab ${_activeTab==='endpoints'?'active':''}" onclick="switchDTab('endpoints','${p.id}')">Endpoints</div>
             <div class="dtab ${_activeTab==='manifest'?'active':''}" onclick="switchDTab('manifest','${p.id}')">Manifest</div>
             <div class="dtab ${_activeTab==='promotion'?'active':''}" onclick="switchDTab('promotion','${p.id}')">Promotion</div>
             <div class="dtab ${_activeTab==='response'?'active':''}" onclick="switchDTab('response','${p.id}')">Response</div>
         </div>
+
+        ${p.ui_file ? `
+        <div class="dpanel dpanel-ui ${_activeTab==='ui'?'active':''}" id="dp-ui">
+            <iframe class="plugin-iframe" src="/plugin-ui/${p.id}" title="${esc(p.display_name||p.id)} UI"></iframe>
+        </div>` : ''}
 
         <div class="dpanel ${_activeTab==='endpoints'?'active':''}" id="dp-endpoints">
             <div class="card">

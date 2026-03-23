@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat Packs — Learning Center</title>
+<style>
+:root {
+    --primary-bg: #1a1a2e;
+    --secondary-bg: #16213e;
+    --accent-bg: #0f3460;
+    --highlight: #e94560;
+    --success: #00ff88;
+    --warning: #ffd700;
+    --danger: #ff4444;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a0a0a0;
+    --border: #2a2a3e;
+    --gpt-oss: #00d4ff;
+    --btn-primary: #c73050;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--primary-bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* ── Layout ── */
+.shell { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+.hdr {
+    grid-column: 1 / -1;
+    background: var(--secondary-bg);
+    border-bottom: 2px solid var(--highlight);
+    display: flex; align-items: center; padding: 0 16px; gap: 10px; font-size: 14px;
+}
+.hdr-logo { font-weight: 700; letter-spacing: 0.5px; }
+.hdr-badge { background: var(--accent-bg); padding: 2px 10px; border-radius: 10px; font-size: 11px; color: var(--gpt-oss); }
+.hdr-status { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+
+/* ── Sidebar ── */
+.sidebar {
+    background: var(--secondary-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.sb-section { padding: 12px 14px 6px; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; }
+.sb-list { flex: 1; overflow-y: auto; padding: 0 8px; }
+.sb-item {
+    padding: 10px 12px; margin: 2px 0; border-radius: 6px; cursor: pointer; font-size: 13px;
+    display: flex; flex-direction: column; gap: 2px; transition: background 0.15s;
+}
+.sb-item:hover { background: var(--accent-bg); }
+.sb-item.active { background: var(--accent-bg); border-left: 3px solid var(--highlight); }
+.sb-item-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-item-meta { font-size: 11px; color: var(--text-secondary); display: flex; gap: 8px; }
+.sb-item-badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+.sb-item-badge.lesson { background: #1a3a5c; color: var(--gpt-oss); }
+.sb-item-badge.questions { background: #3a2a1a; color: var(--warning); }
+.sb-item-badge.complete { background: #1a3a2a; color: var(--success); }
+
+.sb-sessions { border-top: 1px solid var(--border); }
+.sb-session-item {
+    padding: 8px 12px; margin: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;
+}
+.sb-session-item:hover { background: var(--accent-bg); }
+.sb-session-item.active { background: var(--accent-bg); border-left: 3px solid var(--success); }
+
+/* ── Main ── */
+.main { overflow-y: auto; padding: 20px; }
+
+/* ── Welcome ── */
+.welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--text-secondary); gap: 12px; }
+.welcome-icon { font-size: 48px; opacity: 0.25; }
+.welcome-title { font-size: 18px; color: var(--text-primary); font-weight: 600; }
+.welcome-hint { font-size: 12px; opacity: 0.6; }
+
+/* ── Pack Detail ── */
+.pack-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.pack-icon { width: 52px; height: 52px; border-radius: 10px; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: var(--gpt-oss); }
+.pack-title { font-size: 20px; font-weight: 700; }
+.pack-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.pack-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ── Lesson View ── */
+.lesson-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+.section-outline { display: flex; flex-direction: column; gap: 4px; }
+.section-item {
+    padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: background 0.15s;
+}
+.section-item:hover { background: var(--accent-bg); }
+.section-item.current { background: var(--accent-bg); border-left: 3px solid var(--gpt-oss); color: var(--gpt-oss); font-weight: 600; }
+.section-item.completed { color: var(--success); }
+.section-item.completed::before { content: '\2713'; font-size: 12px; }
+.section-item.locked { color: var(--text-secondary); opacity: 0.5; }
+.section-item.locked::before { content: '\1F512'; font-size: 10px; }
+
+.content-card {
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    min-height: 300px;
+}
+.content-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--gpt-oss); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.content-body { font-size: 14px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; }
+.content-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.content-progress { font-size: 12px; color: var(--text-secondary); }
+
+/* ── Question View ── */
+.question-card { background: var(--secondary-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
+.question-label { font-size: 11px; text-transform: uppercase; color: var(--warning); letter-spacing: 1px; margin-bottom: 8px; }
+.question-text { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+.question-input { width: 100%; background: var(--primary-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: var(--text-primary); font-size: 14px; resize: vertical; min-height: 80px; }
+.question-input:focus { outline: none; border-color: var(--gpt-oss); }
+
+/* ── Complete View ── */
+.complete-card { background: var(--secondary-bg); border: 1px solid var(--border); border-radius: 8px; padding: 32px; text-align: center; }
+.complete-icon { font-size: 48px; margin-bottom: 12px; }
+.complete-title { font-size: 20px; font-weight: 700; color: var(--success); margin-bottom: 8px; }
+.complete-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+/* ── Cards ── */
+.card { background: var(--secondary-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.card h3 { font-size: 14px; margin-bottom: 12px; color: var(--gpt-oss); }
+.info-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.info-item { font-size: 12px; }
+.info-item .lbl { color: var(--text-secondary); margin-right: 4px; }
+.info-item .val { color: var(--text-primary); font-weight: 600; }
+
+/* ── Buttons ── */
+.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--btn-primary); color: white; }
+.btn-success { background: #1a6b3a; color: var(--success); }
+.btn-secondary { background: var(--accent-bg); color: var(--text-primary); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-accent { background: #0a4a6e; color: var(--gpt-oss); }
+
+/* ── Tags ── */
+.tag { display: inline-block; background: var(--accent-bg); color: var(--gpt-oss); padding: 2px 8px; border-radius: 8px; font-size: 11px; margin: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+    <div class="hdr">
+        <span class="hdr-logo">Chat Packs</span>
+        <span class="hdr-badge" id="hdr-count">--</span>
+        <span class="hdr-status" id="hdr-status">Loading...</span>
+    </div>
+
+    <div class="sidebar">
+        <div class="sb-section">Installed Packs</div>
+        <div class="sb-list" id="sb-packs">
+            <div style="padding:12px;color:var(--text-secondary);font-size:12px;">Scanning...</div>
+        </div>
+        <div class="sb-sessions">
+            <div class="sb-section">Active Sessions</div>
+            <div class="sb-list" id="sb-sessions" style="max-height: 200px;">
+                <div style="padding:8px 12px;color:var(--text-secondary);font-size:11px;">No sessions</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main" id="main">
+        <div class="welcome" id="welcome">
+            <div class="welcome-icon">&#x1F4DA;</div>
+            <div class="welcome-title">Chat Packs — Learning Center</div>
+            <div class="welcome-hint">Select a pack to view details, or resume an active session</div>
+        </div>
+        <div id="detail" style="display:none;"></div>
+    </div>
+</div>
+
+<script>
+const API = '/api/chat-packs';
+let _packs = [];
+let _sessions = [];
+let _currentView = null;   // {type: 'pack'|'session', id: ...}
+let _lessonView = null;     // cached /session/{id}/view response
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// ── Data fetching ──
+
+async function fetchPacks() {
+    try {
+        const r = await fetch(API + '/list');
+        const d = await r.json();
+        _packs = d.packs || [];
+    } catch { _packs = []; }
+}
+
+async function fetchSessions() {
+    try {
+        const r = await fetch(API + '/sessions');
+        const d = await r.json();
+        _sessions = d.sessions || [];
+    } catch { _sessions = []; }
+}
+
+async function fetchStatus() {
+    try {
+        const r = await fetch(API + '/status');
+        const d = await r.json();
+        document.getElementById('hdr-count').textContent = d.installed_count + ' packs';
+        document.getElementById('hdr-status').textContent = d.enabled ? 'Active' : 'Disabled';
+    } catch {
+        document.getElementById('hdr-status').textContent = 'Error';
+    }
+}
+
+// ── Sidebar rendering ──
+
+function renderSidebar() {
+    // Packs
+    const packsEl = document.getElementById('sb-packs');
+    packsEl.innerHTML = '';
+    if (_packs.length === 0) {
+        packsEl.innerHTML = '<div style="padding:12px;color:var(--text-secondary);font-size:12px;">No packs installed</div>';
+    }
+    for (const p of _packs) {
+        const item = document.createElement('div');
+        const isActive = _currentView?.type === 'pack' && _currentView?.id === p.pack_id;
+        item.className = 'sb-item' + (isActive ? ' active' : '');
+        item.innerHTML = `
+            <span class="sb-item-title">${esc(p.title || p.pack_id)}</span>
+            <span class="sb-item-meta">
+                <span>v${esc(p.version)}</span>
+                <span>${p.total_sections} sections</span>
+                ${p.total_questions ? `<span>${p.total_questions} questions</span>` : ''}
+            </span>
+        `;
+        item.onclick = () => showPackDetail(p.pack_id);
+        packsEl.appendChild(item);
+    }
+
+    // Sessions
+    const sessEl = document.getElementById('sb-sessions');
+    sessEl.innerHTML = '';
+    if (_sessions.length === 0) {
+        sessEl.innerHTML = '<div style="padding:8px 12px;color:var(--text-secondary);font-size:11px;">No sessions</div>';
+    }
+    for (const s of _sessions) {
+        const item = document.createElement('div');
+        const isActive = _currentView?.type === 'session' && _currentView?.id === s.session_id;
+        item.className = 'sb-session-item' + (isActive ? ' active' : '');
+        item.innerHTML = `
+            <span>${esc(s.pack_title || s.pack_id)}</span>
+            <span class="sb-item-badge ${s.phase}">${s.phase}</span>
+        `;
+        item.onclick = () => resumeSession(s.session_id);
+        sessEl.appendChild(item);
+    }
+}
+
+// ── Pack detail view ──
+
+async function showPackDetail(packId) {
+    _currentView = { type: 'pack', id: packId };
+    renderSidebar();
+    const el = document.getElementById('detail');
+    el.style.display = 'block';
+    document.getElementById('welcome').style.display = 'none';
+
+    // Fetch full pack info
+    let pack = null;
+    try {
+        const r = await fetch(API + '/pack/' + encodeURIComponent(packId));
+        const d = await r.json();
+        pack = d.pack;
+        var sectionTitles = d.section_titles || [];
+        var questionCount = d.question_count || 0;
+    } catch {
+        el.innerHTML = '<div class="card">Failed to load pack.</div>';
+        return;
+    }
+
+    const initial = (pack.title || packId).split(' ').map(w => w[0]?.toUpperCase() || '').join('').slice(0, 2);
+    const tags = (pack.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+
+    el.innerHTML = `
+        <div class="pack-header">
+            <div class="pack-icon">${initial}</div>
+            <div>
+                <div class="pack-title">${esc(pack.title || packId)}</div>
+                <div class="pack-subtitle">${esc(pack.mode || 'lesson')} &middot; v${esc(pack.version)} &middot; ${esc(pack.difficulty || 'standard')}</div>
+            </div>
+            <div class="pack-actions">
+                <button class="btn btn-primary" onclick="startSession('${esc(packId)}')">Start Lesson</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Overview</h3>
+            <div class="info-row">
+                <div class="info-item"><span class="lbl">Sections:</span><span class="val">${sectionTitles.length}</span></div>
+                <div class="info-item"><span class="lbl">Questions:</span><span class="val">${questionCount}</span></div>
+                <div class="info-item"><span class="lbl">Mode:</span><span class="val">${esc(pack.mode || 'lesson')}</span></div>
+                <div class="info-item"><span class="lbl">Difficulty:</span><span class="val">${esc(pack.difficulty || '--')}</span></div>
+            </div>
+            ${tags ? `<div style="margin-top:10px;">${tags}</div>` : ''}
+        </div>
+
+        <div class="card">
+            <h3>Sections</h3>
+            ${sectionTitles.length === 0
+                ? '<div style="color:var(--text-secondary);font-size:12px;">No sections</div>'
+                : `<div class="section-outline">${sectionTitles.map((t, i) => `
+                    <div class="section-item" onclick="previewSection('${esc(packId)}', ${i})">
+                        <span style="color:var(--text-secondary);font-size:11px;min-width:24px;">${i + 1}.</span>
+                        <span>${esc(t)}</span>
+                    </div>`).join('')}</div>`}
+        </div>
+
+        <div class="card" id="section-preview" style="display:none;">
+            <h3>Section Preview</h3>
+            <div id="section-preview-content"></div>
+        </div>
+
+        ${pack.readme ? `<div class="card"><h3>Readme</h3><div style="font-size:13px;color:var(--text-secondary);white-space:pre-wrap;">${esc(pack.readme)}</div></div>` : ''}
+    `;
+}
+
+async function previewSection(packId, index) {
+    try {
+        const r = await fetch(API + '/pack/' + encodeURIComponent(packId) + '/section/' + index);
+        const d = await r.json();
+        const card = document.getElementById('section-preview');
+        card.style.display = 'block';
+        document.getElementById('section-preview-content').innerHTML = `
+            <div class="content-title">${esc(d.title)}</div>
+            <div class="content-body">${esc(d.body)}</div>
+        `;
+        card.scrollIntoView({ behavior: 'smooth' });
+    } catch {}
+}
+
+// ── Session lifecycle ──
+
+async function startSession(packId) {
+    try {
+        const r = await fetch(API + '/session/start/' + encodeURIComponent(packId), { method: 'POST' });
+        const d = await r.json();
+        if (d.session) {
+            await fetchSessions();
+            resumeSession(d.session.session_id);
+        }
+    } catch (e) {
+        alert('Failed to start session: ' + e.message);
+    }
+}
+
+async function resumeSession(sessionId) {
+    _currentView = { type: 'session', id: sessionId };
+    renderSidebar();
+    const el = document.getElementById('detail');
+    el.style.display = 'block';
+    document.getElementById('welcome').style.display = 'none';
+
+    try {
+        const r = await fetch(API + '/session/' + sessionId + '/view');
+        _lessonView = await r.json();
+    } catch {
+        el.innerHTML = '<div class="card">Failed to load session.</div>';
+        return;
+    }
+
+    renderLessonView(el);
+}
+
+function renderLessonView(el) {
+    const v = _lessonView;
+    if (!v || !v.session) return;
+    const s = v.session;
+    const sections = v.sections || [];
+    const content = v.current_content || {};
+
+    const initial = (v.pack_title || s.pack_id).split(' ').map(w => w[0]?.toUpperCase() || '').join('').slice(0, 2);
+
+    // Phase-specific content
+    let mainContent = '';
+    if (s.phase === 'complete') {
+        mainContent = `
+            <div class="complete-card">
+                <div class="complete-icon">&#x2714;</div>
+                <div class="complete-title">Lesson Complete!</div>
+                <div class="complete-subtitle">${esc(v.pack_title || s.pack_id)}</div>
+                <div style="margin-top:16px;">
+                    <button class="btn btn-secondary" onclick="resetSession('${s.session_id}')">Start Over</button>
+                </div>
+            </div>
+        `;
+    } else if (s.phase === 'questions') {
+        mainContent = `
+            <div class="question-card">
+                <div class="question-label">Question ${s.question_index + 1} of ${s.total_questions}</div>
+                <div class="question-text">${esc(content.body || content.title)}</div>
+                <div class="content-nav">
+                    <span class="content-progress">Questions phase</span>
+                    <button class="btn btn-primary" onclick="advanceSession('${s.session_id}')">Next &rarr;</button>
+                </div>
+            </div>
+        `;
+    } else {
+        mainContent = `
+            <div class="content-card">
+                <div class="content-title">${esc(content.title)}</div>
+                <div class="content-body">${esc(content.body)}</div>
+                <div class="content-nav">
+                    <span class="content-progress">Section ${s.section_index + 1} of ${s.total_sections}</span>
+                    <button class="btn btn-primary" onclick="advanceSession('${s.session_id}')">
+                        ${s.section_index + 1 < s.total_sections ? 'Next Section &rarr;' : 'Finish Lessons &rarr;'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    el.innerHTML = `
+        <div class="pack-header">
+            <div class="pack-icon">${initial}</div>
+            <div>
+                <div class="pack-title">${esc(v.pack_title || s.pack_id)}</div>
+                <div class="pack-subtitle">Session ${esc(s.session_id.slice(0, 8))} &middot; <span class="sb-item-badge ${s.phase}">${s.phase}</span></div>
+            </div>
+            <div class="pack-actions">
+                <button class="btn btn-secondary btn-sm" onclick="resetSession('${s.session_id}')">Reset</button>
+            </div>
+        </div>
+
+        <div class="lesson-layout">
+            <div class="section-outline">
+                ${sections.map(sec => `
+                    <div class="section-item ${sec.status}" ${sec.status === 'completed' ? `onclick="viewCompletedSection('${s.session_id}', '${s.pack_id}', ${sec.index})"` : ''}>
+                        <span style="min-width:20px;font-size:11px;color:var(--text-secondary);">${sec.index + 1}</span>
+                        <span>${esc(sec.title)}</span>
+                    </div>
+                `).join('')}
+                ${s.total_questions > 0 ? `
+                    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+                    <div class="section-item ${s.phase === 'questions' ? 'current' : s.phase === 'complete' ? 'completed' : 'locked'}">
+                        <span style="min-width:20px;font-size:11px;">?</span>
+                        <span>Questions (${s.total_questions})</span>
+                    </div>
+                ` : ''}
+            </div>
+            <div>
+                ${mainContent}
+            </div>
+        </div>
+    `;
+}
+
+async function advanceSession(sessionId) {
+    try {
+        const r = await fetch(API + '/session/advance/' + sessionId, { method: 'POST' });
+        const d = await r.json();
+        if (d.session) {
+            // Refresh the full lesson view
+            await fetchSessions();
+            await resumeSession(sessionId);
+        }
+    } catch {}
+}
+
+async function resetSession(sessionId) {
+    try {
+        const r = await fetch(API + '/session/reset/' + sessionId, { method: 'POST' });
+        const d = await r.json();
+        if (d.session) {
+            await fetchSessions();
+            await resumeSession(sessionId);
+        }
+    } catch {}
+}
+
+async function viewCompletedSection(sessionId, packId, index) {
+    try {
+        const r = await fetch(API + '/pack/' + encodeURIComponent(packId) + '/section/' + index);
+        const d = await r.json();
+        // Replace content area while keeping outline
+        const contentArea = document.querySelector('.lesson-layout > div:last-child');
+        if (contentArea) {
+            contentArea.innerHTML = `
+                <div class="content-card">
+                    <div class="content-title">${esc(d.title)}</div>
+                    <div class="content-body">${esc(d.body)}</div>
+                    <div class="content-nav">
+                        <span class="content-progress">Reviewing section ${index + 1}</span>
+                        <button class="btn btn-secondary" onclick="resumeSession('${sessionId}')">Back to Current</button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch {}
+}
+
+// ── Init ──
+
+async function init() {
+    await fetchStatus();
+    await fetchPacks();
+    await fetchSessions();
+    renderSidebar();
+}
+
+init();
+</script>
+</body>
+</html>

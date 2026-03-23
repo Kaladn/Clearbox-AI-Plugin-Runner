@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CompuCog — Control Plane</title>
+<style>
+:root {
+    --primary-bg: #1a1a2e;
+    --secondary-bg: #16213e;
+    --accent-bg: #0f3460;
+    --highlight: #e94560;
+    --success: #00ff88;
+    --warning: #ffd700;
+    --danger: #ff4444;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a0a0a0;
+    --border: #2a2a3e;
+    --gpt-oss: #00d4ff;
+    --btn-primary: #c73050;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--primary-bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* ── Header ── */
+.hdr {
+    background: var(--secondary-bg);
+    border-bottom: 2px solid var(--highlight);
+    display: flex; align-items: center; padding: 0 20px; height: 48px; gap: 12px; font-size: 14px;
+}
+.hdr-logo { font-weight: 700; letter-spacing: 0.5px; }
+.hdr-badge { background: var(--accent-bg); padding: 2px 10px; border-radius: 10px; font-size: 11px; color: var(--gpt-oss); }
+.hdr-status { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status-dot.ok { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot.down { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.status-dot.unknown { background: var(--text-secondary); }
+
+/* ── Layout ── */
+.content { padding: 20px; max-width: 1000px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-full { grid-column: 1 / -1; }
+
+/* ── Cards ── */
+.card {
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+}
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.card-header h3 { font-size: 14px; color: var(--gpt-oss); }
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+.badge-ok { background: #1a3a2a; color: var(--success); }
+.badge-down { background: #3a1a1a; color: var(--danger); }
+.badge-unknown { background: var(--accent-bg); color: var(--text-secondary); }
+
+/* ── Info grid ── */
+.info-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; font-size: 13px; }
+.info-grid .lbl { color: var(--text-secondary); }
+.info-grid .val { color: var(--text-primary); font-family: 'Consolas', monospace; word-break: break-all; }
+
+/* ── Overview panel ── */
+.overview-section { margin-top: 12px; }
+.overview-section h4 { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.overview-json {
+    background: var(--primary-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--gpt-oss);
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* ── Buttons ── */
+.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--btn-primary); color: white; }
+.btn-secondary { background: var(--accent-bg); color: var(--text-primary); }
+.btn-accent { background: #0a4a6e; color: var(--gpt-oss); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── Actions bar ── */
+.actions-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── Backend link ── */
+.backend-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--gpt-oss); text-decoration: none; font-size: 13px;
+    padding: 6px 12px; background: var(--accent-bg); border-radius: 6px;
+    transition: opacity 0.15s;
+}
+.backend-link:hover { opacity: 0.8; }
+
+/* ── Pulse animation ── */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.pulsing { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+    <span class="hdr-logo">CompuCog</span>
+    <span class="hdr-badge">v<span id="hdr-version">--</span></span>
+    <div class="hdr-status">
+        <span class="status-dot unknown" id="status-dot"></span>
+        <span id="status-text" style="font-size:12px;color:var(--text-secondary);">Checking...</span>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- Status + Health -->
+    <div class="grid">
+        <div class="card">
+            <div class="card-header">
+                <h3>Plugin Status</h3>
+                <span class="badge badge-unknown" id="plugin-badge">--</span>
+            </div>
+            <div class="info-grid" id="status-grid">
+                <span class="lbl">Plugin</span><span class="val">compucog</span>
+                <span class="lbl">Version</span><span class="val" id="st-version">--</span>
+                <span class="lbl">Backend URL</span><span class="val" id="st-backend-url">--</span>
+                <span class="lbl">Backend Reachable</span><span class="val" id="st-reachable">--</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Health Check</h3>
+                <button class="btn btn-sm btn-secondary" onclick="refreshAll()">Refresh</button>
+            </div>
+            <div id="health-content">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <span class="status-dot unknown" id="health-dot" style="width:16px;height:16px;border-radius:50%;"></span>
+                    <div>
+                        <div style="font-size:16px;font-weight:700;" id="health-label">Checking...</div>
+                        <div style="font-size:12px;color:var(--text-secondary);" id="health-detail">Pinging backend...</div>
+                    </div>
+                </div>
+                <div class="actions-bar">
+                    <a class="backend-link" id="ui-link" href="#" target="_blank" style="display:none;">
+                        &#x2197; Open CompuCog UI
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backend Status Detail -->
+    <div class="card" id="backend-status-card" style="display:none;">
+        <div class="card-header">
+            <h3>Backend Status Detail</h3>
+            <span class="badge badge-ok">Connected</span>
+        </div>
+        <div class="overview-json" id="backend-status-json">--</div>
+    </div>
+
+    <!-- System Overview -->
+    <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+            <h3>System Overview</h3>
+            <button class="btn btn-sm btn-accent" onclick="fetchOverview()">Load</button>
+        </div>
+        <div id="overview-content">
+            <div style="color:var(--text-secondary);font-size:12px;">Click "Load" to fetch system overview from the CompuCog backend.</div>
+        </div>
+    </div>
+
+    <!-- UI Info -->
+    <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+            <h3>UI Info</h3>
+        </div>
+        <div class="info-grid" id="ui-info-grid">
+            <span class="lbl">UI URL</span><span class="val" id="ui-url">--</span>
+            <span class="lbl">API Base</span><span class="val" id="ui-api-base">--</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const API = '/api/compucog';
+
+// ── Fetch status ──
+async function fetchStatus() {
+    try {
+        const r = await fetch(API + '/status');
+        const d = await r.json();
+
+        document.getElementById('hdr-version').textContent = d.version || '?';
+        document.getElementById('st-version').textContent = d.version || '?';
+        document.getElementById('st-backend-url').textContent = d.backend_base_url || '--';
+
+        const reachable = d.backend_reachable;
+        document.getElementById('st-reachable').textContent = reachable ? 'Yes' : 'No';
+        document.getElementById('st-reachable').style.color = reachable ? 'var(--success)' : 'var(--danger)';
+
+        const dot = document.getElementById('status-dot');
+        const badge = document.getElementById('plugin-badge');
+        dot.className = 'status-dot ' + (reachable ? 'ok' : 'down');
+        badge.className = 'badge ' + (reachable ? 'badge-ok' : 'badge-down');
+        badge.textContent = reachable ? 'CONNECTED' : 'DISCONNECTED';
+        document.getElementById('status-text').textContent = reachable ? 'Backend connected' : 'Backend unreachable';
+
+        // Backend status detail
+        if (d.backend_status) {
+            document.getElementById('backend-status-card').style.display = 'block';
+            document.getElementById('backend-status-json').textContent = JSON.stringify(d.backend_status, null, 2);
+        } else {
+            document.getElementById('backend-status-card').style.display = 'none';
+        }
+    } catch (e) {
+        document.getElementById('status-text').textContent = 'Error: ' + e.message;
+        document.getElementById('status-dot').className = 'status-dot down';
+        document.getElementById('plugin-badge').className = 'badge badge-down';
+        document.getElementById('plugin-badge').textContent = 'ERROR';
+    }
+}
+
+// ── Fetch health ──
+async function fetchHealth() {
+    try {
+        const r = await fetch(API + '/health');
+        const d = await r.json();
+
+        const ok = d.backend_reachable;
+        const dot = document.getElementById('health-dot');
+        dot.className = 'status-dot ' + (ok ? 'ok' : 'down');
+        document.getElementById('health-label').textContent = ok ? 'Healthy' : 'Unreachable';
+        document.getElementById('health-label').style.color = ok ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('health-detail').textContent = ok ? 'Backend is responding normally' : 'Cannot reach CompuCog backend';
+    } catch {
+        document.getElementById('health-label').textContent = 'Error';
+        document.getElementById('health-label').style.color = 'var(--danger)';
+        document.getElementById('health-detail').textContent = 'Failed to perform health check';
+    }
+}
+
+// ── Fetch UI info ──
+async function fetchUIInfo() {
+    try {
+        const r = await fetch(API + '/ui/info');
+        const d = await r.json();
+
+        document.getElementById('ui-url').textContent = d.ui_url || '--';
+        document.getElementById('ui-api-base').textContent = d.api_base_url || '--';
+
+        if (d.ui_url) {
+            const link = document.getElementById('ui-link');
+            link.href = d.ui_url;
+            link.style.display = 'inline-flex';
+        }
+    } catch {}
+}
+
+// ── Fetch system overview ──
+async function fetchOverview() {
+    const el = document.getElementById('overview-content');
+    el.innerHTML = '<div style="color:var(--gpt-oss);font-size:12px;" class="pulsing">Loading system overview...</div>';
+
+    try {
+        const r = await fetch(API + '/system/overview');
+        const d = await r.json();
+
+        if (d.overview) {
+            el.innerHTML = `
+                <div class="overview-json">${escHtml(JSON.stringify(d.overview, null, 2))}</div>
+            `;
+        } else {
+            el.innerHTML = `
+                <div style="color:var(--warning);font-size:13px;">
+                    Backend returned no overview data. ${d.ok ? '' : 'Backend may be unreachable.'}
+                </div>
+            `;
+        }
+    } catch (e) {
+        el.innerHTML = `<div style="color:var(--danger);font-size:13px;">Failed: ${escHtml(e.message)}</div>`;
+    }
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+async function refreshAll() {
+    await Promise.all([fetchStatus(), fetchHealth(), fetchUIInfo()]);
+}
+
+// ── Init ──
+refreshAll();
+// Auto-refresh every 15s
+setInterval(refreshAll, 15000);
+</script>
+</body>
+</html>
